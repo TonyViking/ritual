@@ -390,7 +390,12 @@
           <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
         </svg>
       </button>
-      <button class="icon-btn" onclick="openAddTask(null)" title="Add ritual">
+      <button class="icon-btn" onclick="openPastOneOffs()" title="Past one-offs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </button>
+    <button class="icon-btn" onclick="openAddTask(null)" title="Add ritual">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
@@ -448,6 +453,19 @@
   </div>
 </div>
 
+<!-- ══ PAST ONE-OFFS SHEET ══ -->
+<div class="sheet-overlay" id="past-overlay" onclick="closePastOneOffs()"></div>
+<div class="bottom-sheet" id="past-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title">Past One-offs</div>
+    <button class="sheet-close" onclick="closePastOneOffs()">×</button>
+  </div>
+  <div class="sheet-body" id="past-list">
+    <div class="loading-state"><div class="spinner"></div>Loading…</div>
+  </div>
+</div>
+
 <!-- ══ ADD TASK SHEET ══ -->
 <div class="sheet-overlay" id="add-overlay" onclick="closeAddTask()"></div>
 <div class="bottom-sheet" id="add-sheet">
@@ -460,6 +478,12 @@
     <div class="form-group">
       <label class="form-label">Name</label>
       <input class="form-input" id="new-name" type="text" placeholder="e.g. Brush teeth" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="cat-check-label" style="font-size:15px">
+        <input type="checkbox" id="new-oneoff" style="width:17px;height:17px;accent-color:var(--accent);flex-shrink:0"> One-off task
+      </label>
+      <div class="form-hint" style="margin-top:6px">Disappears from the list once marked done</div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -504,8 +528,10 @@ const CONFIG = {
   COL_MIN:       2,
   COL_MAX:       3,
   COL_LAST_DONE: 4,
-  COL_CATS:      5,
-  COL_LEGEND:    9,
+  COL_CATS:      5,   // E  — space-separated category codes
+  COL_ONEOFF:    6,   // F  — "1" if one-off task
+  COL_LEGEND:    9,   // I  — "code = Name Emoji"
+  ARCHIVE_SHEET: 'Sheet2', // tab for completed one-offs
   DATA_START_ROW: 2,
 };
 const OAUTH_CLIENT_ID = '321304865512-53n0nqgmg7il2i7mjinni0efd025lpgi.apps.googleusercontent.com';
@@ -648,7 +674,7 @@ async function loadData(forceRefresh = false) {
     if (cachedLegend) {
       // ── Fast path: legend from cache, only fetch task data (cols A–E) ──
       categories = cachedLegend;
-      const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A${CONFIG.DATA_START_ROW}:E`);
+      const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A${CONFIG.DATA_START_ROW}:F`);
       const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
       const res   = await fetch(url);
       const data  = await res.json();
@@ -685,6 +711,7 @@ function parseTaskRows(rows) {
       maxDays:  parseFloat(row[CONFIG.COL_MAX - 1]) || 7,
       lastDone: parseDate(row[CONFIG.COL_LAST_DONE - 1]),
       cats:     (row[CONFIG.COL_CATS - 1] || '').toLowerCase().split(' ').filter(Boolean),
+      oneOff:   (row[CONFIG.COL_ONEOFF - 1] || '').trim() === '1',
       sheetRow: CONFIG.DATA_START_ROW + i,
     }));
 }
@@ -1052,6 +1079,7 @@ function renderTasks() {
         <div class="task-info">
           <div class="task-name">${task.name}</div>
           ${otherCats ? `<div class="task-cats">Also in: ${otherCats}</div>` : ''}
+      ${task.oneOff ? `<div class="task-cats" style="color:var(--accent)">✦ One-off</div>` : ''}
         </div>
         <button class="done-btn" onclick="markDoneTask(${task.sheetRow}, this)">Done</button>
       </div>
@@ -1147,6 +1175,12 @@ async function writeToSheet(range, value, btn, sheetRow, timestamp, isHome) {
     if (data.error) throw new Error(data.error.message);
 
     applyDoneLocally(sheetRow, timestamp, btn);
+
+    // If one-off, archive to Sheet2 then delete from Sheet1
+    const task = allTasks.find(t => t.sheetRow === sheetRow);
+    if (task?.oneOff) {
+      setTimeout(() => archiveAndDeleteOneOff(sheetRow, task.name, task.cats, timestamp), 1500);
+    }
   } catch(e) {
     showToast('Save failed — ' + e.message);
     if (btn) btn.disabled = false;
@@ -1332,7 +1366,7 @@ async function submitNewTask() {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [[name, min, max, '', cats.join(' ')]] }),
+        body: JSON.stringify({ values: [[name, min, max, '', cats.join(' '), document.getElementById('new-oneoff').checked ? '1' : '']] }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
@@ -1342,6 +1376,7 @@ async function submitNewTask() {
       document.getElementById('new-min').value  = '';
       document.getElementById('new-max').value  = '';
       document.querySelectorAll('#new-cat-checks input').forEach(cb => cb.checked = false);
+      document.getElementById('new-oneoff').checked = false;
       await loadData();
     } catch(e) {
       showToast('Failed — ' + e.message);
@@ -1352,6 +1387,107 @@ async function submitNewTask() {
 
   if (accessToken) { await doAppend(); }
   else { pendingWrite = { customCallback: doAppend }; initOAuth(); }
+}
+
+// ─── Archive one-off to Sheet2 then delete from Sheet1 ──
+async function archiveAndDeleteOneOff(sheetRow, taskName, taskCats, completedAt) {
+  try {
+    // 1. Append to Sheet2: Name | Date Completed | Categories
+    const catLabels    = taskCats.map(c => catName(c)).filter(Boolean).join(', ');
+    const archiveRange = encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
+    const archiveUrl   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${archiveRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+    await fetch(archiveUrl, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [[taskName, formatDate(completedAt), catLabels]] }),
+    });
+
+    // 2. Get sheet metadata to find numeric sheetId
+    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?key=${CONFIG.API_KEY}`;
+    const meta    = await fetch(metaUrl).then(r => r.json());
+    const sheet   = meta.sheets.find(s => s.properties.title === CONFIG.SHEET_NAME);
+    if (!sheet) return;
+
+    // 3. Delete row from Sheet1
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: [{ deleteDimension: {
+          range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: sheetRow - 1, endIndex: sheetRow }
+        }}]
+      }),
+    });
+
+    // 4. Update in-memory
+    allTasks = allTasks.filter(t => t.sheetRow !== sheetRow);
+    allTasks = allTasks.map(t => t.sheetRow > sheetRow ? { ...t, sheetRow: t.sheetRow - 1 } : t);
+    renderHome();
+    if (currentCategory) renderTasks();
+    showToast('Archived to Past One-offs ✓');
+  } catch(e) {
+    console.warn('Archive failed:', e.message);
+    showToast('Archive failed — ' + e.message);
+  }
+}
+
+// ─── Past One-offs ────────────────────────────────
+async function openPastOneOffs() {
+  document.getElementById('past-overlay').classList.add('open');
+  document.getElementById('past-sheet').classList.add('open');
+
+  const container = document.getElementById('past-list');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+
+  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+    container.innerHTML = renderPastRows([
+      ['Meditate at the beach', '28 Mar 2026 09:00', 'Mind'],
+      ['Book dentist',          '15 Mar 2026 14:30', 'Self Care'],
+      ['Send thank you card',   '02 Mar 2026 11:00', ''],
+    ]);
+    return;
+  }
+
+  try {
+    const range = encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const res   = await fetch(url);
+    const data  = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const rows = (data.values || []).filter(r => r[0]);
+    if (rows.length === 0) {
+      container.innerHTML = '<div class="empty-state"><span class="e-icon">📭</span>No completed one-offs yet.</div>';
+      return;
+    }
+
+    // Sort most recent first
+    rows.sort((a, b) => new Date(b[1] || 0) - new Date(a[1] || 0));
+    container.innerHTML = renderPastRows(rows);
+  } catch(e) {
+    container.innerHTML = `<div class="error-msg">⚠️ Couldn't load<br>${e.message}</div>`;
+  }
+}
+
+function renderPastRows(rows) {
+  return rows.map(row => {
+    const name = row[0] || '';
+    const date = row[1] || '';
+    const cats = row[2] || '';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:500;color:var(--ink)">${name}</div>
+          ${cats ? `<div style="font-size:11px;color:var(--ink-muted);margin-top:2px">📂 ${cats}</div>` : ''}
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);text-align:right;line-height:1.5">${date}</div>
+      </div>`;
+  }).join('') + '<div style="height:1px"></div>';
+}
+
+function closePastOneOffs() {
+  document.getElementById('past-overlay').classList.remove('open');
+  document.getElementById('past-sheet').classList.remove('open');
 }
 
 // ─── OAuth ────────────────────────────────────────
@@ -1410,4 +1546,4 @@ updateOnlineBadge();
 loadData();
 </script>
 </body>
-</html>
+  </html>
