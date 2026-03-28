@@ -502,9 +502,9 @@ opacity: 0; z-index: 200; white-space: nowrap;
      I = Category legend  e.g. "self = Self Care 🪥"
 ═══════════════════════════════════════════════════ */
 const CONFIG = {
-  SHEET_ID:      'YOUR_SHEET_ID_HERE',
+   SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'YOUR_API_KEY_HERE',
+  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',
   COL_NAME:      1,
   COL_MIN:       2,
   COL_MAX:       3,
@@ -513,7 +513,7 @@ const CONFIG = {
   COL_LEGEND:    9,
   DATA_START_ROW: 2,
 };
-const OAUTH_CLIENT_ID = 'YOUR_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com';
+const OAUTH_CLIENT_ID = '321304865512-53n0nqgmg7il2i7mjinni0efd025lpgi.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // ─── State ────────────────────────────────────────
@@ -638,7 +638,7 @@ function parseLegend(rows) {
 // ─── Load data ────────────────────────────────────
 // forceRefresh=true busts the legend cache (used by the refresh button)
 async function loadData(forceRefresh = false) {
-  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+  if (CONFIG.SHEET_ID === '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ') {
     document.getElementById('config-banner').classList.remove('hidden');
     loadDemo(); return;
   }
