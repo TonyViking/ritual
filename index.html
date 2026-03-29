@@ -93,14 +93,6 @@
   .header-right { display: flex; gap: 8px; align-items: center; }
 
   /* ── CONFIG BANNER ── */
-  #config-banner {
-    margin: 0 16px 12px;
-    background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25);
-    border-radius: 12px; padding: 12px 14px; font-size: 12px; line-height: 1.6; color: #d4a800;
-  }
-  #config-banner strong { display: block; margin-bottom: 3px; font-size: 13px; }
-  #config-banner a { color: #fbbf24; }
-  #config-banner.hidden { display: none; }
 
   /* ── SECTION LABELS ── */
   .section-label {
@@ -162,7 +154,7 @@
   .category-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 18px 14px 14px;
-    cursor: pointer; transition: transform .15s, border-color .2s;
+    transition: border-color .2s;
     position: relative; overflow: hidden;
     -webkit-user-select: none; user-select: none;
   }
@@ -171,7 +163,7 @@
     background: linear-gradient(135deg, rgba(192,132,252,.05), transparent);
     pointer-events: none;
   }
-  .category-card:active { transform: scale(.96); }
+  .category-card:active { transform: none; }
   .category-card.has-overdue { border-color: rgba(244,63,94,.4); }
   .category-card.has-due    { border-color: rgba(249,115,22,.35); }
   .category-card.long-press-active { transform: scale(.94); background: var(--surface2); }
@@ -180,6 +172,19 @@
   .cat-stats { font-size: 11px; color: var(--ink-muted); font-weight: 300; }
   .cat-urgency-bar { height: 2px; border-radius: 2px; margin-top: 10px; background: var(--border); overflow: hidden; }
   .cat-urgency-fill { height: 100%; border-radius: 2px; width: 0%; transition: width .8s cubic-bezier(.25,.8,.25,1); }
+  .cat-tap-btn {
+    position: absolute; right: 10px; top: 10px;
+    padding: 4px 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-muted); font-size: 15px; font-weight: 400;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+    z-index: 2;
+  }
+  .cat-tap-btn:active { background: var(--accent); color: white; border-color: var(--accent); }
   .cat-badge {
     position: absolute; top: 10px; right: 10px;
     background: var(--c-over); color: white;
@@ -231,15 +236,6 @@
   .task-card-wrap {
     position: relative; border-radius: var(--radius); overflow: hidden;
   }
-  .swipe-bg {
-    position: absolute; inset: 0;
-    background: linear-gradient(90deg, rgba(74,222,128,.25), rgba(74,222,128,.1));
-    display: flex; align-items: center; padding-left: 20px;
-    font-size: 18px; opacity: 0; transition: opacity .15s;
-    border-radius: var(--radius);
-    pointer-events: none;
-  }
-  .swipe-bg.visible { opacity: 1; }
   .task-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden;
@@ -258,18 +254,7 @@
   .task-name { font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink); }
   .task-cats { font-size: 10px; color: var(--ink-muted); margin-top: 3px; letter-spacing: .3px; }
   .task-last { font-size: 11px; color: var(--ink-soft); padding: 0 13px 9px; font-weight: 300; }
-  .done-btn {
-    flex-shrink: 0; background: var(--surface2); color: var(--accent);
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 7px 14px; font-family: 'DM Sans', sans-serif;
-    font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
-  }
-  .done-btn:active { transform: scale(.93); }
-  .done-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .done-btn.saving {
-    background: rgba(74,222,128,.12); color: var(--c-fresh);
-    border-color: rgba(74,222,128,.25);
-  }
+
   .urgency-bar { height: 3px; background: var(--border); overflow: hidden; }
   .urgency-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
 
@@ -402,11 +387,7 @@
       </button>
     </div>
   </header>
-  <div id="config-banner" class="hidden">
-    <strong>⚙️ Setup needed</strong>
-    Fill in <code>SHEET_ID</code>, <code>API_KEY</code>, and <code>OAUTH_CLIENT_ID</code>.
-    <a href="#" onclick="this.closest('#config-banner').classList.add('hidden');return false">Dismiss</a>
-  </div>
+  
   <div id="home-content"></div>
 </div>
 
@@ -677,10 +658,6 @@ function parseLegend(rows) {
 // ─── Load data ────────────────────────────────────
 // forceRefresh=true busts the legend cache (used by the refresh button)
 async function loadData(forceRefresh = false) {
-  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {
-    document.getElementById('config-banner').classList.remove('hidden');
-    loadDemo(); return;
-  }
 
   document.getElementById('home-content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
 
@@ -731,7 +708,11 @@ function parseTaskRows(rows) {
       cats:     (row[CONFIG.COL_CATS - 1] || '').toLowerCase().split(' ').filter(Boolean),
       oneOff:   (row[CONFIG.COL_ONEOFF - 1] || '').trim() === '1',
       sheetRow: CONFIG.DATA_START_ROW + i,
-    }));
+    })).map(t => {
+      const days  = t.lastDone ? (Date.now() - t.lastDone.getTime()) / 86400000 : Infinity;
+      const ratio = isFinite(days) ? Math.min(days / t.maxDays, 1.8) : 1.5;
+      return { ...t, days, ratio };
+    });
 }
 
 function loadDemo() {
@@ -791,26 +772,7 @@ function renderHome() {
   // ── Urgent strip ──
   if (urgentTasks.length > 0) {
     html += '<div class="section-label">Needs attention</div>';
-    html += '<div class="urgent-strip" id="urgent-strip">';
-    urgentTasks.forEach(t => {
-      const level = urgencyLevel(t.ratio);
-      const color = urgencyColor(t.ratio);
-      const width = Math.min(t.ratio * 100, 100) + '%';
-      const catLabels = t.cats.map(c => catEmoji(c) + ' ' + catName(c)).join(' · ');
-      html += `
-        <div class="urgent-card" data-urgency="${level}" data-row="${t.sheetRow}">
-          <div class="urgent-inner">
-            <div class="urgent-meta">
-              <div class="urgent-name">${t.name}</div>
-              <div class="urgent-cat">${catLabels}</div>
-            </div>
-            <button class="done-btn" onclick="markDoneHome(${t.sheetRow}, this)">Done</button>
-          </div>
-          <div class="urgent-last">${relativeTime(t.lastDone)}</div>
-          <div class="urgent-bar"><div class="urgent-fill" style="background:${color}" data-target="${width}"></div></div>
-        </div>`;
-    });
-    html += '</div>';
+    html += '<div class="urgent-strip" id="urgent-strip"></div>';
   }
 
   // ── Category grid ──
@@ -834,12 +796,13 @@ function renderHome() {
         .sort((a,b) => b.ratio - a.ratio)[0];
       html += `
         <div class="category-card${cls}" data-cat="${cat.code}" data-top-row="${topTask ? topTask.sheetRow : ''}" data-top-name="${topTask ? topTask.name : ''}">
-          ${overdue ? `<div class="cat-badge">${overdue} due</div>` : ''}
+          ${overdue ? `<div class="cat-badge" style="top:38px;right:10px">${overdue} due</div>` : ''}
           <span class="cat-emoji">${cat.emoji}</span>
           <div class="cat-name">${cat.name}</div>
           <div class="cat-stats">${catTasks.length} ritual${catTasks.length !== 1 ? 's' : ''}</div>
           <div class="cat-urgency-bar"><div class="cat-urgency-fill" style="background:${fillColor}" data-target="${fillPct}%"></div></div>
           ${topTask && topTask.ratio >= 0.7 ? `<div class="cat-hint">hold to mark "${topTask.name}" done</div>` : ''}
+          <div class="cat-tap-btn" onclick="event.stopPropagation();showTasks('${cat.code}')">›</div>
         </div>`;
     });
     html += '</div>';
@@ -862,6 +825,90 @@ function renderHome() {
   }
 
   el.innerHTML = html;
+
+  // Populate urgent strip with swipeable cards
+  const urgentStrip = el.querySelector('#urgent-strip');
+  if (urgentStrip) {
+    urgentTasks.forEach(t => {
+      const level    = urgencyLevel(t.ratio);
+      const color    = urgencyColor(t.ratio);
+      const width    = Math.min(t.ratio * 100, 100) + '%';
+      const catLabels = t.cats.map(c => catEmoji(c) + ' ' + catName(c)).join(' · ');
+
+      const wrap = document.createElement('div');
+      wrap.className = 'task-card-wrap';
+
+      const bgDone = document.createElement('div');
+      bgDone.className = 'swipe-bg-done';
+      bgDone.innerHTML = '✓';
+
+      const bgSnooze = document.createElement('div');
+      bgSnooze.className = 'swipe-bg-snooze';
+      bgSnooze.innerHTML = '💤';
+
+      const card = document.createElement('div');
+      card.className = 'urgent-card';
+      card.dataset.urgency = level;
+      card.dataset.row = t.sheetRow;
+      card.style.cssText = 'touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1;border-radius:14px;overflow:hidden';
+      card.innerHTML = `
+        <div class="urgent-inner">
+          <div class="urgent-meta">
+            <div class="urgent-name">${t.name}</div>
+            <div class="urgent-cat">${catLabels}</div>
+          </div>
+        </div>
+        <div class="urgent-last">${relativeTime(t.lastDone)}</div>
+        <div class="urgent-bar"><div class="urgent-fill" style="background:${color}" data-target="${width}"></div></div>
+      `;
+
+      wrap.appendChild(bgDone);
+      wrap.appendChild(bgSnooze);
+      wrap.appendChild(card);
+      urgentStrip.appendChild(wrap);
+
+      attachHomeSwipe(card, bgDone, bgSnooze, t.sheetRow);
+    });
+  }
+
+  // Populate urgent strip with swipeable cards
+  const urgentEl = el.querySelector('#urgent-strip');
+  if (urgentEl && urgentTasks.length > 0) {
+    urgentTasks.forEach(t => {
+      const level     = urgencyLevel(t.ratio);
+      const color     = urgencyColor(t.ratio);
+      const width     = Math.min(t.ratio * 100, 100) + '%';
+      const catLabels = t.cats.map(c => catEmoji(c) + ' ' + catName(c)).join(' · ');
+
+      const wrap = document.createElement('div');
+      wrap.className = 'task-card-wrap';
+
+      const bgDone   = document.createElement('div');
+      bgDone.className = 'swipe-bg-done'; bgDone.innerHTML = '✓';
+
+      const bgSnooze = document.createElement('div');
+      bgSnooze.className = 'swipe-bg-snooze'; bgSnooze.innerHTML = '💤';
+
+      const card = document.createElement('div');
+      card.className = 'urgent-card';
+      card.dataset.urgency = level; card.dataset.row = t.sheetRow;
+      card.style.cssText = 'touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1';
+      card.innerHTML = `
+        <div class="urgent-inner">
+          <div class="urgent-meta">
+            <div class="urgent-name">${t.name}</div>
+            <div class="urgent-cat">${catLabels}</div>
+          </div>
+        </div>
+        <div class="urgent-last">${relativeTime(t.lastDone)}</div>
+        <div class="urgent-bar"><div class="urgent-fill" style="background:${color}" data-target="${width}"></div></div>
+      `;
+
+      wrap.appendChild(bgDone); wrap.appendChild(bgSnooze); wrap.appendChild(card);
+      urgentEl.appendChild(wrap);
+      attachHomeSwipe(card, bgDone, bgSnooze, t.sheetRow);
+    });
+  }
 
   // Animate urgency bars
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -902,11 +949,7 @@ function attachCatCardEvents(card) {
     pressing = false;
     card.classList.remove('long-press-active');
     clearTimeout(pressTimer);
-    // Regular tap — only if lp-confirm not showing
-    const lp = document.getElementById('lp-confirm');
-    if (!lp.classList.contains('show')) {
-      showTasks(card.dataset.cat);
-    }
+    // Navigation handled by the › tap button — long press only here
   };
 
   const cancelPress = () => {
@@ -989,7 +1032,6 @@ window.addEventListener('online', () => {
 
 // ─── Mark Done from home ──────────────────────────
 async function markDoneHome(sheetRow, btn, taskName) {
-  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') { showToast('Demo mode — configure sheet to save'); return; }
   if (btn) btn.disabled = true;
   const now   = new Date();
   const value = formatDate(now);
@@ -1121,6 +1163,45 @@ function renderTasks() {
   }));
 }
 
+// ─── Home swipe (urgent strip) ──────────────────────────
+function attachHomeSwipe(card, bgDone, bgSnooze, sheetRow) {
+  let startX = 0, startY = 0, dx = 0, tracking = false;
+  const THR = 90;
+  card.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    tracking = true; dx = 0;
+  }, { passive: true });
+  card.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const mx = e.touches[0].clientX - startX;
+    const my = e.touches[0].clientY - startY;
+    if (Math.abs(my) > Math.abs(mx) + 10) {
+      tracking = false; card.style.transform = '';
+      bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible'); return;
+    }
+    dx = Math.max(-140, Math.min(mx, 140));
+    card.style.transform = `translateX(${dx}px)`;
+    card.style.transition = 'none';
+    bgDone.classList.toggle('visible', dx < -30);
+    bgSnooze.classList.toggle('visible', dx > 30);
+  }, { passive: true });
+  card.addEventListener('touchend', () => {
+    if (!tracking) return;
+    tracking = false; card.style.transition = '';
+    bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible');
+    if (dx <= -THR) {
+      card.style.transform = 'translateX(-110%)'; card.style.opacity = '0';
+      markDoneHome(sheetRow, null);
+      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 400);
+    } else if (dx >= THR) {
+      card.style.transform = 'translateX(110%)'; card.style.opacity = '0';
+      snoozeTask(sheetRow);
+      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 400);
+    } else { card.style.transform = ''; }
+    dx = 0;
+  });
+}
+
 // ─── Swipe to done ────────────────────────────────
 function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
   let startX = 0, startY = 0, dx = 0;
@@ -1180,7 +1261,6 @@ function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
 
 // ─── Mark Done (task view) ────────────────────────
 async function markDoneTask(sheetRow, btn) {
-  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') { showToast('Demo mode — configure sheet to save'); return; }
   if (btn) btn.disabled = true;
   const now   = new Date();
   const value = formatDate(now);
@@ -1389,7 +1469,6 @@ async function submitNewTask() {
   if (!name)        { showToast('Please enter a name'); return; }
   if (!min || !max) { showToast('Please enter min and max days'); return; }
   if (min > max)    { showToast('Min must be ≤ max days'); return; }
-  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') { showToast('Demo mode — configure sheet to save'); return; }
 
   const btn = document.getElementById('add-submit-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -1475,14 +1554,6 @@ async function openPastOneOffs() {
   const container = document.getElementById('past-list');
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
 
-  if (CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {
-    container.innerHTML = renderPastRows([
-      ['Meditate at the beach', '28 Mar 2026 09:00', 'Mind'],
-      ['Book dentist',          '15 Mar 2026 14:30', 'Self Care'],
-      ['Send thank you card',   '02 Mar 2026 11:00', ''],
-    ]);
-    return;
-  }
 
   try {
     const range = encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
@@ -1606,6 +1677,38 @@ updateOnlineBadge();
 
 // ─── Init ─────────────────────────────────────────
 loadData();
+
+
+
+// ─── Scroll-safe tap (v2) ─────────────────────────────────
+// Tracks finger movement globally. If the finger moved more than
+// THRESHOLD px, records a scroll timestamp. Any click event that
+// fires within BLOCK_MS of a scroll is silently dropped.
+(function() {
+  const THRESHOLD = 6;   // px of movement = scrolling
+  const BLOCK_MS  = 600; // ms to block clicks after scroll ends
+
+  let startX = 0, startY = 0, scrolledAt = 0;
+
+  document.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dx > THRESHOLD || dy > THRESHOLD) scrolledAt = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('click', e => {
+    if (Date.now() - scrolledAt < BLOCK_MS) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+})();
+
 </script>
 </body>
-</html>
+  </html>
