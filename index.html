@@ -614,11 +614,29 @@ function urgencyColor(ratio) {
 
 function relativeTime(date) {
   if (!date) return 'Never done';
-  const d = daysSince(date);
+  const d   = daysSince(date);
+  const now = new Date();
+  const hr  = now.getHours();
+
   if (d < 0.04) return 'Done just now';
-  if (d < 1)    return 'Done today';
-  if (d < 2)    return 'Done yesterday';
-  return `Done ${Math.floor(d)} day${Math.floor(d) !== 1 ? 's' : ''} ago`;
+
+  // Same calendar day
+  if (d < 1) {
+    const doneHr = new Date(date).getHours();
+    if (doneHr < 12 && hr >= 12) return 'Done this morning';
+    return 'Done today';
+  }
+
+  // Previous calendar day
+  if (d < 2) {
+    const doneHr = new Date(date).getHours();
+    if (doneHr >= 18) return 'Done last night';
+    if (doneHr >= 12) return 'Done yesterday afternoon';
+    return 'Done yesterday';
+  }
+
+  const days = Math.floor(d);
+  return `Done ${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
 function isDoneToday(date) {
