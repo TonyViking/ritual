@@ -68,12 +68,6 @@
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
   .header-sub { font-size: 10px; color: var(--ink-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
-  .offline-badge {
-    display: inline-block; background: rgba(251,191,36,.2); color: #fbbf24;
-    border: 1px solid rgba(251,191,36,.3); border-radius: 8px;
-    font-size: 9px; padding: 1px 6px; margin-left: 6px;
-    vertical-align: middle; letter-spacing: .5px;
-  }
   .back-btn {
     background: none; border: 1px solid var(--border); border-radius: 10px;
     padding: 6px 12px; color: var(--ink-soft); font-family: 'DM Sans', sans-serif;
@@ -358,16 +352,247 @@
     opacity: 0; z-index: 200; white-space: nowrap;
   }
   #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ── Landing screen ── */
+  #landing-screen {
+    position: fixed; inset: 0; z-index: 9000;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(var(--safe-top) + 20px) 32px calc(var(--safe-bot) + 40px);
+    text-align: center;
+    transition: opacity .4s, transform .4s;
+  }
+  #landing-screen.hide {
+    opacity: 0; transform: translateY(-20px); pointer-events: none;
+  }
+  .landing-logo {
+    width: 96px; height: 96px; border-radius: 26px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px; margin-bottom: 28px;
+    box-shadow: 0 8px 40px rgba(192,132,252,.15);
+    animation: logoFloat 4s ease-in-out infinite;
+  }
+  @keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .landing-title {
+    font-family: 'Cinzel', serif; font-size: clamp(38px, 11vw, 56px);
+    font-weight: 700; letter-spacing: -1px; line-height: 1.05; margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .landing-sub {
+    font-size: 14px; color: var(--ink-soft); line-height: 1.7;
+    max-width: 280px; margin: 0 auto 44px; font-weight: 300;
+  }
+  .landing-begin-btn {
+    width: 100%; max-width: 300px; padding: 17px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white; border: none; border-radius: 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600;
+    cursor: pointer; letter-spacing: .3px; margin-bottom: 14px;
+    box-shadow: 0 8px 32px rgba(192,132,252,.25);
+    transition: transform .15s, opacity .15s;
+  }
+  .landing-begin-btn:active { transform: scale(.97); }
+  .landing-howto-btn {
+    background: none; border: 1px solid var(--border); border-radius: 40px;
+    padding: 10px 28px; color: var(--ink-soft);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  .landing-howto-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── How To screen ── */
+  #howto-screen {
+    position: fixed; inset: 0; z-index: 9001;
+    background: var(--bg); overflow-y: auto;
+    display: none;
+    animation: fadeUp .3s ease;
+  }
+  #howto-screen.show { display: block; }
+  .howto-header {
+    padding: calc(var(--safe-top) + 16px) 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  .howto-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+  .howto-body { padding: 24px 24px calc(var(--safe-bot) + 40px); }
+  .howto-section { margin-bottom: 28px; }
+  .howto-section-title {
+    font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600;
+    letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .howto-section p {
+    font-size: 14px; color: var(--ink-soft); line-height: 1.75; font-weight: 300;
+  }
+  .howto-section p strong { color: var(--ink); font-weight: 500; }
+  .howto-tip {
+    display: flex; align-items: flex-start; gap: 12px; margin-top: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .howto-tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .howto-tip-text { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+  .howto-tip-text strong { color: var(--ink); }
+
+
+  /* ── Landing screen ── */
+  #landing-screen {
+    position: fixed; inset: 0; z-index: 9000;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(var(--safe-top) + 20px) 32px calc(var(--safe-bot) + 40px);
+    text-align: center;
+    transition: opacity .4s, transform .4s;
+  }
+  #landing-screen.hide { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+  .landing-logo {
+    width: 96px; height: 96px; border-radius: 26px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px; margin-bottom: 28px;
+    box-shadow: 0 8px 40px rgba(192,132,252,.2);
+    animation: logoFloat 4s ease-in-out infinite;
+  }
+  @keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .landing-title {
+    font-family: 'Cinzel', serif; font-size: clamp(36px, 11vw, 54px);
+    font-weight: 700; letter-spacing: -1px; line-height: 1.05; margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .landing-sub {
+    font-size: 14px; color: var(--ink-soft); line-height: 1.7;
+    max-width: 280px; margin: 0 auto 44px; font-weight: 300;
+  }
+  .landing-begin-btn {
+    width: 100%; max-width: 300px; padding: 17px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white; border: none; border-radius: 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600;
+    cursor: pointer; letter-spacing: .3px; margin-bottom: 14px;
+    box-shadow: 0 8px 32px rgba(192,132,252,.25); transition: transform .15s;
+  }
+  .landing-begin-btn:active { transform: scale(.97); }
+  .landing-howto-btn {
+    background: none; border: 1px solid var(--border); border-radius: 40px;
+    padding: 10px 28px; color: var(--ink-soft);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  .landing-howto-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── How To screen ── */
+  #howto-screen {
+    position: fixed; inset: 0; z-index: 9001;
+    background: var(--bg); overflow-y: auto; display: none;
+    animation: fadeUp .3s ease;
+  }
+  #howto-screen.show { display: block; }
+  .howto-header {
+    padding: calc(var(--safe-top) + 16px) 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  .howto-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+  .howto-body { padding: 24px 24px calc(var(--safe-bot) + 40px); }
+  .howto-section { margin-bottom: 28px; }
+  .howto-section-title {
+    font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .howto-section p { font-size: 14px; color: var(--ink-soft); line-height: 1.75; font-weight: 300; }
+  .howto-section p strong { color: var(--ink); font-weight: 500; }
+  .howto-tip {
+    display: flex; align-items: flex-start; gap: 12px; margin-top: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .howto-tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .howto-tip-text { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+  .howto-tip-text strong { color: var(--ink); }
+
+  /* Snap animation on swipe complete */
+  @keyframes cardSnap {
+    0%   { transform: translateX(-110%) scale(1); }
+    20%  { transform: translateX(-80%) scale(1.04); }
+    100% { transform: translateX(-110%) scale(1); opacity: 0; }
+  }
+  @keyframes cardSnapRight {
+    0%   { transform: translateX(110%) scale(1); }
+    20%  { transform: translateX(80%) scale(1.04); }
+    100% { transform: translateX(110%) scale(1); opacity: 0; }
+  }
 </style>
 </head>
 <body>
+<canvas id="particle-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;transition:opacity .2s"></canvas>
+
+<!-- ══ LANDING SCREEN ══ -->
+<div id="landing-screen">
+  <div class="landing-logo">💀</div>
+  <div class="landing-title">Ritual</div>
+  <div class="landing-sub" id="landing-greeting">Your personal tracker for self‑care, growth and connection. Small habits, done consistently.</div>
+  <button class="landing-begin-btn" onclick="beginRitual()">Begin →</button>
+  <button class="landing-howto-btn" onclick="showHowTo()">How to use</button>
+</div>
+
+<!-- ══ HOW TO SCREEN ══ -->
+<div id="howto-screen">
+  <div class="howto-header">
+    <div class="howto-title">How to use</div>
+    <button class="icon-btn" onclick="closeHowTo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="howto-body">
+    <div class="howto-section">
+      <div class="howto-section-title">Your rituals</div>
+      <p>Rituals are habits organised into <strong>categories</strong> like Self Care, Mind and Connection. Each has a min and max number of days — the app tracks how long since you last did it.</p>
+    </div>
+    <div class="howto-section">
+      <div class="howto-section-title">Home screen</div>
+      <p>The top strip shows your most <strong>urgent rituals</strong> across all categories. Below that, category tiles are sorted by urgency — most overdue floats to the top.</p>
+      <div class="howto-tip">
+        <div class="howto-tip-icon">←</div>
+        <div class="howto-tip-text"><strong>Swipe left</strong> to mark done · <strong>Swipe right</strong> to hide until tomorrow.</div>
+      </div>
+    </div>
+    <div class="howto-section">
+      <div class="howto-section-title">Inside a category</div>
+      <p>Tap the <strong>›</strong> pill on a category tile to open it. Use the <strong>day filter pills</strong> to control how far ahead you see — each category remembers your filter.</p>
+      <div class="howto-tip">
+        <div class="howto-tip-icon">🤙</div>
+        <div class="howto-tip-text"><strong>Long press</strong> a tile to instantly mark its most overdue ritual done without opening it.</div>
+      </div>
+    </div>
+    <div class="howto-section">
+      <div class="howto-section-title">Urgency colours</div>
+      <div class="howto-tip"><div class="howto-tip-icon">🟢</div><div class="howto-tip-text"><strong>Green</strong> — recently done, no action needed.</div></div>
+      <div class="howto-tip" style="margin-top:8px"><div class="howto-tip-icon">🟡</div><div class="howto-tip-text"><strong>Yellow/orange</strong> — due soon.</div></div>
+      <div class="howto-tip" style="margin-top:8px"><div class="howto-tip-icon">🔴</div><div class="howto-tip-text"><strong>Red</strong> — overdue. Time to act.</div></div>
+    </div>
+    <div class="howto-section">
+      <div class="howto-section-title">One-off tasks</div>
+      <p>Tick <strong>One-off</strong> when adding for things you only do once. When marked done, they archive to Past One-offs and vanish from the list.</p>
+    </div>
+    <div class="howto-section">
+      <div class="howto-section-title">Adding rituals</div>
+      <p>Tap <strong>＋</strong> to add. Set <strong>min days</strong> (earliest to repeat) and <strong>max days</strong> (when it's due). A ritual can belong to multiple categories.</p>
+    </div>
+  </div>
+</div>
 
 <!-- ══ HOME VIEW ══ -->
 <div class="view active" id="view-home">
   <header>
     <div>
       <div class="wordmark">Ritual</div>
-      <div class="header-sub">Personal tracker<span class="offline-badge" id="offline-badge" style="display:none">OFFLINE</span></div>
+      <div class="header-sub" id="done-today-count">Personal tracker</div>
+      <div id="streak-badge" style="display:none;align-items:center;gap:5px;font-size:10px;color:var(--c-soon);letter-spacing:.3px;margin-top:2px"></div>
     </div>
     <div class="header-right">
       <button class="icon-btn spin" onclick="loadData(true)" title="Refresh (busts legend cache)">
@@ -490,6 +715,8 @@
 <div id="toast"></div>
 
 <script>
+
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -691,6 +918,7 @@ async function loadData(forceRefresh = false) {
 
     renderHome();
     if (currentCategory) renderTasks();
+    checkWelcomeBack();
   } catch(e) {
     document.getElementById('home-content').innerHTML =
       `<div class="error-msg">⚠️ Couldn't load<br>${e.message}<br><br>Check Sheet ID, API key,<br>and that the sheet is public.</div>`;
@@ -800,6 +1028,7 @@ function renderHome() {
           <span class="cat-emoji">${cat.emoji}</span>
           <div class="cat-name">${cat.name}</div>
           <div class="cat-stats">${catTasks.length} ritual${catTasks.length !== 1 ? 's' : ''}</div>
+          <div style="display:flex;gap:4px;margin-top:6px">${renderRhythmDots(cat.code)}</div>
           <div class="cat-urgency-bar"><div class="cat-urgency-fill" style="background:${fillColor}" data-target="${fillPct}%"></div></div>
           ${topTask && topTask.ratio >= 0.7 ? `<div class="cat-hint">hold to mark "${topTask.name}" done</div>` : ''}
           <div class="cat-tap-btn" onclick="event.stopPropagation();showTasks('${cat.code}')">›</div>
@@ -977,58 +1206,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ─── Offline write queue ─────────────────────────
-// When offline, writes are queued in localStorage and flushed
-// automatically when the connection is restored.
-const QUEUE_KEY = 'ritual_write_queue_v1';
-
-function getQueue() {
-  try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch { return []; }
-}
-
-function saveQueue(q) {
-  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch {}
-}
-
-function enqueue(sheetRow, value) {
-  const q = getQueue();
-  // Remove any existing entry for this row (keep only latest)
-  const filtered = q.filter(item => item.sheetRow !== sheetRow);
-  filtered.push({ sheetRow, value, ts: Date.now() });
-  saveQueue(filtered);
-}
-
-function dequeue(sheetRow) {
-  const q = getQueue().filter(item => item.sheetRow !== sheetRow);
-  saveQueue(q);
-}
-
-async function flushQueue() {
-  if (!accessToken) return;
-  const q = getQueue();
-  if (q.length === 0) return;
-  let flushed = 0;
-  for (const item of q) {
-    const range = `${CONFIG.SHEET_NAME}!${colLetter(CONFIG.COL_LAST_DONE)}${item.sheetRow}`;
-    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
-    try {
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [[item.value]] }),
-      });
-      const data = await res.json();
-      if (!data.error) { dequeue(item.sheetRow); flushed++; }
-    } catch {}
-  }
-  if (flushed > 0) showToast(`${flushed} queued update${flushed > 1 ? 's' : ''} synced ✓`);
-}
-
-// Flush when coming back online
-window.addEventListener('online', () => {
-  showToast('Back online — syncing…');
-  setTimeout(flushQueue, 800);
-});
 
 // ─── Mark Done from home ──────────────────────────
 async function markDoneHome(sheetRow, btn, taskName) {
@@ -1040,11 +1217,6 @@ async function markDoneHome(sheetRow, btn, taskName) {
   // Apply locally immediately regardless of connectivity
   applyDoneLocally(sheetRow, now, btn);
 
-  if (!navigator.onLine) {
-    enqueue(sheetRow, value);
-    showToast('Saved locally — will sync when online 📶');
-    return;
-  }
 
   const cb = async () => {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
@@ -1192,11 +1364,13 @@ function attachHomeSwipe(card, bgDone, bgSnooze, sheetRow) {
     if (dx <= -THR) {
       card.style.transform = 'translateX(-110%)'; card.style.opacity = '0';
       markDoneHome(sheetRow, null);
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 400);
+      card.style.animation = 'cardSnap .35s ease forwards';
+      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
     } else if (dx >= THR) {
       card.style.transform = 'translateX(110%)'; card.style.opacity = '0';
       snoozeTask(sheetRow);
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 400);
+      card.style.animation = 'cardSnap .35s ease forwards';
+      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
     } else { card.style.transform = ''; }
     dx = 0;
   });
@@ -1245,13 +1419,15 @@ function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
       card.style.transform = 'translateX(-110%)';
       card.style.opacity = '0';
       markDoneTask(sheetRow, null);
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 400);
+      card.style.animation = 'cardSnap .35s ease forwards';
+      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
     } else if (dx >= THRESHOLD) {
       // Swipe right — snooze 1 day
       card.style.transform = 'translateX(110%)';
       card.style.opacity = '0';
       snoozeTask(sheetRow);
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 400);
+      card.style.animation = 'cardSnap .35s ease forwards';
+      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
     } else {
       card.style.transform = '';
     }
@@ -1269,11 +1445,6 @@ async function markDoneTask(sheetRow, btn) {
   // Apply locally immediately
   applyDoneLocally(sheetRow, now, btn);
 
-  if (!navigator.onLine) {
-    enqueue(sheetRow, value);
-    showToast('Saved locally — will sync when online 📶');
-    return;
-  }
 
   if (accessToken) { await writeToSheet(range, value, btn, sheetRow, now, false); }
   else { pendingWrite = { range, value, btn, sheetRow, timestamp: now, isHome: false }; initOAuth(); }
@@ -1309,6 +1480,11 @@ async function writeToSheet(range, value, btn, sheetRow, timestamp, isHome) {
 function applyDoneLocally(sheetRow, timestamp, btn) {
   // 1. Update in-memory task
   const task = allTasks.find(t => t.sheetRow === sheetRow);
+  const prevRatio = task ? (task.lastDone ? Math.min((Date.now()-task.lastDone.getTime())/86400000/(task.maxDays||1),1.8) : 1.5) : 0;
+  const urgentCountBefore = allTasks.filter(t => {
+    const r=t.lastDone?Math.min((Date.now()-t.lastDone.getTime())/86400000/(t.maxDays||1),1.8):1.5;
+    return r>=0.75&&!isSnoozed(t.sheetRow);
+  }).length;
   if (task) task.lastDone = timestamp;
 
   // 2. Update the task card if visible (task view)
@@ -1325,6 +1501,13 @@ function applyDoneLocally(sheetRow, timestamp, btn) {
   }
 
   showToast('Marked as done ✓');
+  // Record streak, rhythm, check redemption, celebrate if urgent clears
+  recordStreakDay();
+  if (task) recordRhythm(task.cats[0]);
+  checkRedemption({ ...task, lastDone: task ? new Date(Date.now() - (task.maxDays||7)*86400000*1.6) : null, _prevRatio: prevRatio });
+  checkUrgentClear(urgentCountBefore);
+  updateDoneTodayBadge();
+  renderStreakBadge();
 
   // 3. Patch home screen without full rebuild
   requestAnimationFrame(() => patchHomeAfterDone(sheetRow, timestamp));
@@ -1649,8 +1832,6 @@ function startTokenFlow() {
         return;
       }
       accessToken = resp.access_token;
-      // Flush any offline queue now that we have a token
-      await flushQueue();
       if (pendingWrite) {
         const pw = pendingWrite; pendingWrite = null;
         if (pw.customCallback) { await pw.customCallback(); }
@@ -1662,52 +1843,214 @@ function startTokenFlow() {
 }
 
 // ─── Offline badge ────────────────────────────────
-function updateOnlineBadge() {
-  const badge = document.getElementById('offline-badge');
-  if (badge) badge.style.display = navigator.onLine ? 'none' : 'inline-block';
-  // Also show queue count if any
-  const q = getQueue();
-  if (badge && !navigator.onLine && q.length > 0) {
-    badge.textContent = `OFFLINE · ${q.length} queued`;
+
+
+
+// ─── Landing ──────────────────────────────────────
+function updateLandingGreeting() {
+  const el = document.getElementById('landing-greeting');
+  if (el) el.textContent = getGreeting() + ' — your rituals are waiting.';
+}
+updateLandingGreeting();
+
+function beginRitual() {
+  burstParticles(innerWidth/2, innerHeight*0.55, 45);
+  const ls = document.getElementById('landing-screen');
+  ls.classList.add('hide');
+  setTimeout(() => { ls.style.display = 'none'; loadData(); }, 400);
+}
+
+function showHowTo() {
+  document.getElementById('howto-screen').classList.add('show');
+}
+
+function closeHowTo() {
+  document.getElementById('howto-screen').classList.remove('show');
+}
+
+// ─── Particle engine ──────────────────────────────
+const _cvs = () => document.getElementById('particle-canvas');
+let _raf = null, _pts = [], _flash = 0;
+
+function burstParticles(ox, oy, count = 35, modeOverride) {
+  const c = _cvs(); if (!c) return;
+  c.width = innerWidth; c.height = innerHeight;
+  c.style.opacity = '1';
+  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
+  _pts = []; _flash = 0.6;
+
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 3 + Math.random() * 7;
+    const sz  = 3 + Math.random() * 9;
+    const lf  = 0.8 + Math.random() * 0.8;
+    const hue = Math.floor(Math.random() * 360);
+    const color = `hsl(${hue},100%,65%)`;
+    const shape = Math.random() > .5 ? 'circle' : 'star';
+    _pts.push({ x:ox, y:oy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-2,
+      sz, color, lf, ml:lf, rot:Math.random()*Math.PI*2,
+      rs:(Math.random()-.5)*.2, grav:.14, drag:.97, shape });
+  }
+  _animPts();
+}
+
+function _star(ctx, x, y, s, rot) {
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.beginPath();
+  for (let i=0;i<10;i++) {
+    const a=i*Math.PI/5-Math.PI/2, r=i%2?s*.4:s;
+    i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function _animPts() {
+  const c = _cvs(); if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  if (_flash > .01) {
+    ctx.globalAlpha = _flash*.12;
+    ctx.fillStyle = `hsl(${Date.now()*.4%360},100%,70%)`;
+    ctx.fillRect(0,0,c.width,c.height);
+    _flash *= .8; ctx.globalAlpha = 1;
+  }
+  _pts = _pts.filter(p=>p.lf>0);
+  for (const p of _pts) {
+    const t = p.lf/p.ml, s = p.sz*Math.sqrt(t);
+    ctx.globalAlpha = t<.3?(t/.3)*.9:t*.9;
+    ctx.fillStyle = p.color; ctx.shadowBlur = 0;
+    if (p.shape==='star') _star(ctx,p.x,p.y,s,p.rot);
+    else { ctx.beginPath(); ctx.arc(p.x,p.y,s,0,Math.PI*2); ctx.fill(); }
+    p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=p.drag; p.vy*=p.drag;
+    p.rot+=p.rs; p.lf-=.022;
+  }
+  ctx.globalAlpha=1;
+  if (_pts.length>0||_flash>.01) _raf=requestAnimationFrame(_animPts);
+  else { c.style.opacity='0'; _raf=null; }
+}
+
+// ─── Streak tracking ──────────────────────────────
+const STREAK_KEY = 'ritual_streak_v1';
+
+function getStreakData() {
+  try { return JSON.parse(localStorage.getItem(STREAK_KEY)) || { current:0, best:0, lastDate:null }; }
+  catch { return { current:0, best:0, lastDate:null }; }
+}
+
+function recordStreakDay() {
+  const data = getStreakData();
+  const today = new Date().toDateString();
+  if (data.lastDate === today) return; // already counted today
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  data.current  = data.lastDate === yesterday ? data.current + 1 : 1;
+  data.best      = Math.max(data.best, data.current);
+  data.lastDate  = today;
+  localStorage.setItem(STREAK_KEY, JSON.stringify(data));
+}
+
+function renderStreakBadge() {
+  const el = document.getElementById('streak-badge');
+  if (!el) return;
+  const { current, best } = getStreakData();
+  if (current < 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = `<span style="font-size:14px">🔥</span><span>${current} day streak${best > current ? ` · best ${best}` : current >= best && current > 1 ? ' · best ever! 🏆' : ''}</span>`;
+}
+
+// ─── Done today count ──────────────────────────────
+function getDoneTodayCount() {
+  return allTasks.filter(t => {
+    if (!t.lastDone) return false;
+    const d = new Date(t.lastDone), n = new Date();
+    return d.getDate()===n.getDate() && d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear();
+  }).length;
+}
+
+function updateDoneTodayBadge() {
+  const el = document.getElementById('done-today-count');
+  const n  = getDoneTodayCount();
+  if (el) el.textContent = n > 0 ? `${n} done today` : 'Personal tracker';
+}
+
+// ─── Welcome back ──────────────────────────────────
+function checkWelcomeBack() {
+  const lastOpen = localStorage.getItem('ritual_last_open');
+  const today    = new Date().toDateString();
+  const daysSince = lastOpen ? Math.floor((Date.now() - new Date(lastOpen).getTime()) / 86400000) : 0;
+  localStorage.setItem('ritual_last_open', new Date().toISOString());
+  if (daysSince >= 2) {
+    // Count overdue
+    const overdue = allTasks.filter(t => {
+      const r = t.lastDone ? Math.min((Date.now()-t.lastDone.getTime())/86400000/t.maxDays, 1.8) : 1.5;
+      return r >= 1;
+    }).length;
+    if (overdue > 0) {
+      setTimeout(() => showToast(`Welcome back ✨ ${overdue} ritual${overdue!==1?'s':''} need attention`), 600);
+    }
   }
 }
-window.addEventListener('online',  updateOnlineBadge);
-window.addEventListener('offline', updateOnlineBadge);
-updateOnlineBadge();
 
-// ─── Init ─────────────────────────────────────────
-loadData();
+// ─── Time-of-day greeting ───────────────────────────
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
+// ─── Redemption toast ──────────────────────────────
+function checkRedemption(task) {
+  if (!task) return;
+  const days = task.lastDone ? (Date.now()-task.lastDone.getTime())/86400000 : Infinity;
+  const ratio = days / task.maxDays;
+  if (ratio > 1.5) setTimeout(() => showToast('Back on track ✨'), 600);
+}
 
+// ─── Celebrate when urgent strip clears ───────────
+function checkUrgentClear(prevCount) {
+  const now = allTasks.filter(t => {
+    const r = t.lastDone ? Math.min((Date.now()-t.lastDone.getTime())/86400000/(t.maxDays||1),1.8):1.5;
+    return r >= 0.75 && !isSnoozed(t.sheetRow);
+  }).length;
+  if (prevCount > 0 && now === 0) {
+    burstParticles(innerWidth/2, innerHeight*0.4, 50);
+    setTimeout(() => showToast('All caught up! 🎉'), 300);
+  }
+}
 
-// ─── Scroll-safe tap (v2) ─────────────────────────────────
-// Tracks finger movement globally. If the finger moved more than
-// THRESHOLD px, records a scroll timestamp. Any click event that
-// fires within BLOCK_MS of a scroll is silently dropped.
-(function() {
-  const THRESHOLD = 6;   // px of movement = scrolling
-  const BLOCK_MS  = 600; // ms to block clicks after scroll ends
+// ─── Weekly rhythm dots ────────────────────────────
+// Returns array of 7 booleans — did the cat have a completion each day this week?
+function getWeeklyRhythm(catCode) {
+  const RHYTHM_KEY = 'ritual_rhythm_v1';
+  try {
+    const data = JSON.parse(localStorage.getItem(RHYTHM_KEY)) || {};
+    return data[catCode] || [false,false,false,false,false,false,false];
+  } catch { return [false,false,false,false,false,false,false]; }
+}
 
-  let startX = 0, startY = 0, scrolledAt = 0;
+function recordRhythm(catCode) {
+  const RHYTHM_KEY = 'ritual_rhythm_v1';
+  try {
+    const data   = JSON.parse(localStorage.getItem(RHYTHM_KEY)) || {};
+    const rhythm = data[catCode] || [false,false,false,false,false,false,false];
+    const dayOfWeek = new Date().getDay();
+    rhythm[dayOfWeek] = true;
+    data[catCode] = rhythm;
+    localStorage.setItem(RHYTHM_KEY, JSON.stringify(data));
+  } catch {}
+}
 
-  document.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', e => {
-    const dx = Math.abs(e.touches[0].clientX - startX);
-    const dy = Math.abs(e.touches[0].clientY - startY);
-    if (dx > THRESHOLD || dy > THRESHOLD) scrolledAt = Date.now();
-  }, { passive: true });
-
-  document.addEventListener('click', e => {
-    if (Date.now() - scrolledAt < BLOCK_MS) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-    }
-  }, true);
-})();
+function renderRhythmDots(catCode) {
+  const rhythm = getWeeklyRhythm(catCode);
+  const days   = ['S','M','T','W','T','F','S'];
+  const today  = new Date().getDay();
+  return days.map((d,i) => {
+    const isToday  = i === today;
+    const done     = rhythm[i];
+    const opacity  = done ? '1' : isToday ? '0.5' : '0.2';
+    const bg       = done ? 'var(--c-fresh)' : isToday ? 'var(--ink-mute)' : 'var(--border)';
+    return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
+  }).join('');
+}
 
 </script>
 </body>
