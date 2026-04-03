@@ -717,6 +717,8 @@
 <script>
 
 
+
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -943,23 +945,7 @@ function parseTaskRows(rows) {
     });
 }
 
-function loadDemo() {
-  categories = [
-    { code:'self',     name:'Self Care',  emoji:'🪥' },
-    { code:'mind',     name:'Mind',       emoji:'🧠' },
-    { code:'connect',  name:'Connection', emoji:'🥂' },
-    { code:'intimate', name:'Intimacy',   emoji:'🌹' },
-  ];
-  allTasks = [
-    { name:'Brush teeth',       minDays:.3, maxDays:.5,  cats:['self'],               lastDone:new Date(Date.now()-9*3600000),   sheetRow:2 },
-    { name:'Skincare',          minDays:.5, maxDays:1,   cats:['self'],               lastDone:new Date(Date.now()-25*3600000),  sheetRow:7 },
-    { name:'Journaling',        minDays:1,  maxDays:3,   cats:['mind','self'],        lastDone:new Date(Date.now()-4*86400000),  sheetRow:6 },
-    { name:'Therapy',           minDays:6,  maxDays:8,   cats:['mind'],               lastDone:new Date(Date.now()-9*86400000),  sheetRow:3 },
-    { name:'Casual date night', minDays:5,  maxDays:10,  cats:['connect'],            lastDone:new Date(Date.now()-12*86400000), sheetRow:4 },
-    { name:'Sexy date night',   minDays:3,  maxDays:7,   cats:['intimate','connect'], lastDone:new Date(Date.now()-8*86400000),  sheetRow:5 },
-  ];
-  renderHome();
-}
+
 
 // ─── HOME ─────────────────────────────────────────
 function showHome() {
@@ -1363,6 +1349,7 @@ function attachHomeSwipe(card, bgDone, bgSnooze, sheetRow) {
     bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible');
     if (dx <= -THR) {
       card.style.transform = 'translateX(-110%)'; card.style.opacity = '0';
+      if (navigator.vibrate) navigator.vibrate(40);
       markDoneHome(sheetRow, null);
       card.style.animation = 'cardSnap .35s ease forwards';
       setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
@@ -1418,6 +1405,7 @@ function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
       // Swipe left — mark done
       card.style.transform = 'translateX(-110%)';
       card.style.opacity = '0';
+      if (navigator.vibrate) navigator.vibrate(40);
       markDoneTask(sheetRow, null);
       card.style.animation = 'cardSnap .35s ease forwards';
       setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
@@ -1503,8 +1491,8 @@ function applyDoneLocally(sheetRow, timestamp, btn) {
   showToast('Marked as done ✓');
   // Record streak, rhythm, check redemption, celebrate if urgent clears
   recordStreakDay();
-  if (task) recordRhythm(task.cats[0]);
-  checkRedemption({ ...task, lastDone: task ? new Date(Date.now() - (task.maxDays||7)*86400000*1.6) : null, _prevRatio: prevRatio });
+  if (task && task.cats) task.cats.forEach(c => recordRhythm(c));
+  if (prevRatio > 1.5) setTimeout(() => showToast('Back on track ✨'), 700);
   checkUrgentClear(urgentCountBefore);
   updateDoneTodayBadge();
   renderStreakBadge();
@@ -1789,9 +1777,10 @@ function getSnoozed() {
 
 function snoozeTask(sheetRow) {
   const snoozed = getSnoozed();
-  snoozed[sheetRow] = Date.now() + 86400000;
+  const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
+  snoozed[sheetRow] = midnight.getTime();
   localStorage.setItem(SNOOZE_KEY, JSON.stringify(snoozed));
-  showToast('Hidden for 1 day 💤');
+  showToast('Hidden until tomorrow 💤');
 }
 
 function isSnoozed(sheetRow) {
@@ -1997,13 +1986,7 @@ function getGreeting() {
   return 'Good evening';
 }
 
-// ─── Redemption toast ──────────────────────────────
-function checkRedemption(task) {
-  if (!task) return;
-  const days = task.lastDone ? (Date.now()-task.lastDone.getTime())/86400000 : Infinity;
-  const ratio = days / task.maxDays;
-  if (ratio > 1.5) setTimeout(() => showToast('Back on track ✨'), 600);
-}
+
 
 // ─── Celebrate when urgent strip clears ───────────
 function checkUrgentClear(prevCount) {
@@ -2051,6 +2034,8 @@ function renderRhythmDots(catCode) {
     return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
   }).join('');
 }
+
+
 
 </script>
 </body>
