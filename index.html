@@ -747,6 +747,7 @@
 
 
 
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -931,9 +932,67 @@ function parseLegend(rows) {
   return cats;
 }
 
-// ─── Load data ────────────────────────────────────
-// forceRefresh=true busts the legend cache (used by the refresh button)
-async 
+// ─── Particle engine ──────────────────────────────
+const _cvs = () => document.getElementById('particle-canvas');
+let _raf = null, _pts = [], _flash = 0;
+
+function burstParticles(ox, oy, count = 35, modeOverride) {
+  const c = _cvs(); if (!c) return;
+  c.width = innerWidth; c.height = innerHeight;
+  c.style.opacity = '1';
+  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
+  _pts = []; _flash = 0.6;
+
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 3 + Math.random() * 7;
+    const sz  = 3 + Math.random() * 9;
+    const lf  = 0.8 + Math.random() * 0.8;
+    const hue = Math.floor(Math.random() * 360);
+    const color = `hsl(${hue},100%,65%)`;
+    const shape = Math.random() > .5 ? 'circle' : 'star';
+    _pts.push({ x:ox, y:oy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-2,
+      sz, color, lf, ml:lf, rot:Math.random()*Math.PI*2,
+      rs:(Math.random()-.5)*.2, grav:.14, drag:.97, shape });
+  }
+  _animPts();
+}
+
+function _star(ctx, x, y, s, rot) {
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.beginPath();
+  for (let i=0;i<10;i++) {
+    const a=i*Math.PI/5-Math.PI/2, r=i%2?s*.4:s;
+    i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function _animPts() {
+  const c = _cvs(); if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  if (_flash > .01) {
+    ctx.globalAlpha = _flash*.12;
+    ctx.fillStyle = `hsl(${Date.now()*.4%360},100%,70%)`;
+    ctx.fillRect(0,0,c.width,c.height);
+    _flash *= .8; ctx.globalAlpha = 1;
+  }
+  _pts = _pts.filter(p=>p.lf>0);
+  for (const p of _pts) {
+    const t = p.lf/p.ml, s = p.sz*Math.sqrt(t);
+    ctx.globalAlpha = t<.3?(t/.3)*.9:t*.9;
+    ctx.fillStyle = p.color; ctx.shadowBlur = 0;
+    if (p.shape==='star') _star(ctx,p.x,p.y,s,p.rot);
+    else { ctx.beginPath(); ctx.arc(p.x,p.y,s,0,Math.PI*2); ctx.fill(); }
+    p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=p.drag; p.vy*=p.drag;
+    p.rot+=p.rs; p.lf-=.022;
+  }
+  ctx.globalAlpha=1;
+  if (_pts.length>0||_flash>.01) _raf=requestAnimationFrame(_animPts);
+  else { c.style.opacity='0'; _raf=null; }
+}
+
+
 // ─── Gamification constants ──────────────────────────
 const XP_RITUAL_TASK = 20;
 const XP_CHORE       = 15;
@@ -2284,65 +2343,6 @@ function closeHowTo() {
   document.getElementById('howto-screen').classList.remove('show');
 }
 
-// ─── Particle engine ──────────────────────────────
-const _cvs = () => document.getElementById('particle-canvas');
-let _raf = null, _pts = [], _flash = 0;
-
-function burstParticles(ox, oy, count = 35, modeOverride) {
-  const c = _cvs(); if (!c) return;
-  c.width = innerWidth; c.height = innerHeight;
-  c.style.opacity = '1';
-  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
-  _pts = []; _flash = 0.6;
-
-  for (let i = 0; i < count; i++) {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = 3 + Math.random() * 7;
-    const sz  = 3 + Math.random() * 9;
-    const lf  = 0.8 + Math.random() * 0.8;
-    const hue = Math.floor(Math.random() * 360);
-    const color = `hsl(${hue},100%,65%)`;
-    const shape = Math.random() > .5 ? 'circle' : 'star';
-    _pts.push({ x:ox, y:oy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-2,
-      sz, color, lf, ml:lf, rot:Math.random()*Math.PI*2,
-      rs:(Math.random()-.5)*.2, grav:.14, drag:.97, shape });
-  }
-  _animPts();
-}
-
-function _star(ctx, x, y, s, rot) {
-  ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.beginPath();
-  for (let i=0;i<10;i++) {
-    const a=i*Math.PI/5-Math.PI/2, r=i%2?s*.4:s;
-    i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
-  }
-  ctx.closePath(); ctx.fill(); ctx.restore();
-}
-
-function _animPts() {
-  const c = _cvs(); if (!c) return;
-  const ctx = c.getContext('2d');
-  ctx.clearRect(0,0,c.width,c.height);
-  if (_flash > .01) {
-    ctx.globalAlpha = _flash*.12;
-    ctx.fillStyle = `hsl(${Date.now()*.4%360},100%,70%)`;
-    ctx.fillRect(0,0,c.width,c.height);
-    _flash *= .8; ctx.globalAlpha = 1;
-  }
-  _pts = _pts.filter(p=>p.lf>0);
-  for (const p of _pts) {
-    const t = p.lf/p.ml, s = p.sz*Math.sqrt(t);
-    ctx.globalAlpha = t<.3?(t/.3)*.9:t*.9;
-    ctx.fillStyle = p.color; ctx.shadowBlur = 0;
-    if (p.shape==='star') _star(ctx,p.x,p.y,s,p.rot);
-    else { ctx.beginPath(); ctx.arc(p.x,p.y,s,0,Math.PI*2); ctx.fill(); }
-    p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=p.drag; p.vy*=p.drag;
-    p.rot+=p.rs; p.lf-=.022;
-  }
-  ctx.globalAlpha=1;
-  if (_pts.length>0||_flash>.01) _raf=requestAnimationFrame(_animPts);
-  else { c.style.opacity='0'; _raf=null; }
-}
 
 // ─── Streak tracking ──────────────────────────────
 const STREAK_KEY = 'ritual_streak_v1';
@@ -2466,6 +2466,7 @@ function renderRhythmDots(catCode) {
 
 
 
+
 </script>
 </body>
-</html>
+  </html>
