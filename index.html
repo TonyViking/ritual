@@ -552,51 +552,52 @@
   <div class="howto-body">
 
     <div class="howto-section">
-      <div class="howto-section-title">Setup — fill these in first</div>
-      <p>Open <strong>ritual.html</strong> in a text editor. Near the top of the <code>&lt;script&gt;</code> block you'll find two config blocks. Fill in the placeholders:</p>
-      <div class="howto-tip" style="margin-top:10px">
-        <div class="howto-tip-icon">📋</div>
-        <div class="howto-tip-text"><strong>CHORES_CONFIG.SHEET_ID</strong> — the ID from your chores Google Sheet URL. Same sheet as the chores app.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">💀</div>
-        <div class="howto-tip-text"><strong>CONFIG.SHEET_ID</strong> — the ID from your ritual Google Sheet URL. This is your personal tracker.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">🔑</div>
-        <div class="howto-tip-text"><strong>API_KEY</strong> — appears twice (once in each config). Use the same key both times. Get it from Google Cloud Console → APIs & Services → Credentials.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">🔐</div>
-        <div class="howto-tip-text"><strong>OAUTH_CLIENT_ID</strong> — one ID covers both sheets. Same client ID used in the chores app. Authorise <strong>https://tonyviking.github.io</strong> as a JavaScript origin in Google Cloud Console.</div>
-      </div>
-      <p style="margin-top:10px">Both Google Sheets must be set to <strong>Anyone with the link → Viewer</strong> so the API key reads work.</p>
-    </div>
-
-    <div class="howto-section">
       <div class="howto-section-title">Home screen</div>
-      <p>The home screen shows three things stacked top to bottom:</p>
+      <p>The home screen stacks top to bottom: your game card, house health, urgent tasks, and category tiles.</p>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">⚔️</div>
-        <div class="howto-tip-text"><strong>Game card</strong> — your XP, rank, and HP bars. Tap the log button to record a negative item.</div>
+        <div class="howto-tip-text"><strong>Game card</strong> — XP, rank, and HP bars. Tap the log button to record a negative item.</div>
       </div>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">🏠</div>
-        <div class="howto-tip-text"><strong>Chores tile</strong> — shows how many household chores are due or overdue. Tap to open the chores view.</div>
+        <div class="howto-tip-text"><strong>House health</strong> — reads your chores sheet and shows overdue or due soon count. Tap to open the chores app.</div>
       </div>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">⚠️</div>
-        <div class="howto-tip-text"><strong>Needs attention</strong> — your most urgent ritual tasks, swipeable. Swipe left to mark done, swipe right to quiet until midnight.</div>
+        <div class="howto-tip-text"><strong>Needs attention</strong> — your most urgent ritual tasks. Swipe left to mark done, swipe right to quiet until midnight.</div>
       </div>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">📂</div>
-        <div class="howto-tip-text"><strong>Categories</strong> — your ritual categories as tiles. Each shows urgency and a 7-day rhythm strip. Tap to see all tasks in that category.</div>
+        <div class="howto-tip-text"><strong>Categories</strong> — ritual categories as tiles with urgency colours and a 7-day rhythm strip. Tap to see tasks inside.</div>
       </div>
+    </div>
+
+    <div class="howto-section">
+      <div class="howto-section-title">Ritual tasks</div>
+      <div class="howto-tip">
+        <div class="howto-tip-icon">←</div>
+        <div class="howto-tip-text"><strong>Swipe left</strong> to mark done — saves to your sheet and awards XP.</div>
+      </div>
+      <div class="howto-tip" style="margin-top:8px">
+        <div class="howto-tip-icon">→</div>
+        <div class="howto-tip-text"><strong>Swipe right</strong> to quiet until midnight — reappears tomorrow as normal.</div>
+      </div>
+      <div class="howto-tip" style="margin-top:8px">
+        <div class="howto-tip-icon">📂</div>
+        <div class="howto-tip-text">Tap a <strong>category tile</strong> to open all tasks in that category, sorted by urgency.</div>
+      </div>
+    </div>
+
+    <div class="howto-section">
+      <div class="howto-section-title">Urgency colours</div>
+      <div class="howto-tip"><div class="howto-tip-icon">🟢</div><div class="howto-tip-text"><strong>Green</strong> — recently done.</div></div>
+      <div class="howto-tip" style="margin-top:8px"><div class="howto-tip-icon">🟡</div><div class="howto-tip-text"><strong>Yellow</strong> — coming up soon.</div></div>
+      <div class="howto-tip" style="margin-top:8px"><div class="howto-tip-icon">🔴</div><div class="howto-tip-text"><strong>Red</strong> — overdue.</div></div>
     </div>
 
     <div class="howto-section">
       <div class="howto-section-title">XP and ranking</div>
-      <p>You earn XP by completing ritual tasks (+20) and chores (+15). Negative items over their daily limit reduce XP (-5) and HP. Your fantasy rank rises as XP accumulates — and drops if XP falls below a threshold.</p>
+      <p>Completing a ritual task awards <strong>+20 XP</strong>. Your fantasy rank rises as XP builds and drops if it falls.</p>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">🪨</div>
         <div class="howto-tip-text">Stone Dweller → 🌿 Wanderer → ⚔️ Squire → 🛡️ Knight → 🌟 Champion → 🔥 Warrior → 💎 Hero → 🦅 Legend → 👑 Sovereign → 🐉 Mythic</div>
@@ -604,41 +605,32 @@
     </div>
 
     <div class="howto-section">
-      <div class="howto-section-title">HP and negative items</div>
-      <p>HP starts at 100 and regenerates +5 each day. Completing tasks adds small HP. Negative items over their daily allowance reduce HP. Below 30 HP you'll get a care warning.</p>
+      <div class="howto-section-title">HP and health</div>
+      <p>HP starts at 100. Completing tasks restores small HP. It regenerates +5 daily. Below 30 you'll get a care warning.</p>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">🍺</div>
-        <div class="howto-tip-text"><strong>Alcohol</strong> — 2 per day is fine. Each one beyond that costs HP and XP.</div>
+        <div class="howto-tip-text"><strong>Alcohol</strong> — up to 2 a day is fine. Each one beyond that costs HP and XP.</div>
       </div>
       <div class="howto-tip" style="margin-top:8px">
         <div class="howto-tip-icon">🚬</div>
-        <div class="howto-tip-text"><strong>Smoking, binge drinking</strong> — always harmful. No daily allowance. Every log hits HP.</div>
+        <div class="howto-tip-text"><strong>Smoking, binge drinking</strong> — always cost HP. No daily allowance.</div>
       </div>
-      <p style="margin-top:8px">Tap <strong>+ Log a negative item</strong> on the game card to open the log sheet. Items within their limit are noted but don't cost HP.</p>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">🏠 Chores view</div>
-      <p>Tap the chores tile to see all household chores that are due or overdue, pulled live from your chores sheet. Tap <strong>✓ Done</strong> on any chore to mark it complete — writes back to the chores sheet as you and awards +15 XP.</p>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">Ritual tasks</div>
-      <p>Swipe <strong>left</strong> on any card to mark done — saves to your ritual sheet. Swipe <strong>right</strong> to quiet until midnight (reappears tomorrow as normal, no snooze concept). Tap a category tile to see all tasks in that category.</p>
+      <p style="margin-top:8px">Tap <strong>+ Log a negative item</strong> on the game card to open the log sheet.</p>
     </div>
 
     <div class="howto-section">
       <div class="howto-section-title">One-off tasks</div>
-      <p>Set column F to <strong>1</strong> in your sheet for a task that should only appear once. When marked done it's archived to Sheet2 and removed from the list.</p>
+      <p>Set column F to <strong>1</strong> in your sheet for a task that should only appear once. Marking it done archives it to Sheet2 and removes it from the list.</p>
     </div>
 
     <div class="howto-section">
-      <div class="howto-section-title">Ritual sheet layout</div>
-      <p><strong>A</strong> Name · <strong>B</strong> Min days · <strong>C</strong> Max days · <strong>D</strong> Last done (app writes this) · <strong>E</strong> Category codes space-separated · <strong>F</strong> "1" if one-off · <strong>I</strong> Category legend e.g. <em>self = Self Care 🪥</em></p>
+      <div class="howto-section-title">Sheet layout</div>
+      <p><strong>A</strong> Name · <strong>B</strong> Min days · <strong>C</strong> Max days · <strong>D</strong> Last done · <strong>E</strong> Category codes · <strong>F</strong> "1" if one-off · <strong>I</strong> Legend e.g. <em>self = Self Care 🪥</em></p>
     </div>
 
   </div>
 </div>
+
 
 <!-- ══ HOME VIEW ══ -->
 <div class="view active" id="view-home" style="flex-direction:column">
@@ -663,16 +655,6 @@
     </div>
   </header>
   <div id="home-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px calc(var(--safe-bot,0px)+80px)"></div>
-</div>
-
-<!-- ══ CHORES VIEW ══ -->
-<div class="view" id="view-chores">
-  <header>
-    <div><button class="back-btn" onclick="closeChoresView()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button></div>
-    <div class="header-title">🏠 Chores</div>
-    <div style="width:38px"></div>
-  </header>
-  <div id="chores-view-content" style="flex:1;overflow-y:auto;padding:16px 20px calc(var(--safe-bot,0px)+40px)"></div>
 </div>
 
 <!-- ══ NEGATIVE ITEMS OVERLAY ══ -->
@@ -800,6 +782,10 @@
 
 
 
+
+
+
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -811,30 +797,6 @@
      E = Category codes, space-separated  e.g. "self mind"
      I = Category legend  e.g. "self = Self Care 🪥"
 ═══════════════════════════════════════════════════ */
-// ─── Chores Sheet CONFIG ─────────────────────────────
-/* ═══════════════════════════════════════════════════════════
-   CHORES SHEET — links ritual to your household chores sheet
-   ─────────────────────────────────────────────────────────
-   SHEET_ID  → open your chores Google Sheet, copy the long ID
-               from the URL: docs.google.com/spreadsheets/d/[THIS_PART]/edit
-   API_KEY   → same API key as below (Google Cloud Console)
-   YOUR_NAME → your name as it will be written to col F on completion
-   ═══════════════════════════════════════════════════════════ */
-const CHORES_CONFIG = {
-  SHEET_ID:      '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE',   // ← paste chores sheet ID here
-  SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',            // ← same key as CONFIG below
-  COL_NAME:      1,   // A — chore name
-  COL_MIN_DAYS:  2,   // B — min days between
-  COL_MAX_DAYS:  3,   // C — max days (0 = one-off)
-  COL_LAST_DONE: 4,   // D — last completed (written by app)
-  COL_ROOM:      5,   // E — room code(s)
-  COL_WHO:       6,   // F — who did it (written by app)
-  COL_DURATION:  7,   // G — duration in minutes
-  COL_LEGEND:    9,   // I — room legend e.g. "k = Kitchen"
-  DATA_START_ROW: 2,
-  YOUR_NAME:     'Anthony',   // ← your name written on chore completion
-};
 
 /* ═══════════════════════════════════════════════════════════
    RITUAL SHEET — your personal ritual / self-care tracking sheet
@@ -856,7 +818,7 @@ const CHORES_CONFIG = {
 const CONFIG = {
   SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',   // ← paste ritual sheet ID here
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',            // ← same key as CHORES_CONFIG above
+  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',            // ← your Google Cloud API key
   COL_NAME:      1,
   COL_MIN:       2,
   COL_MAX:       3,
@@ -880,8 +842,6 @@ let accessToken     = null;
 let tokenExpiry     = 0;
 let pendingWrite    = null;
 let allTasks        = [];
-let allChores       = [];
-let choreRoomLegend = {};
 let categories      = [];
 let currentCategory = null;
 let filterDays      = 4;
@@ -1225,6 +1185,20 @@ async function loadData(forceRefresh = false) {
 
   document.getElementById('home-content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
 
+  // Guard against unconfigured ritual sheet
+  if (CONFIG.SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) {
+    document.getElementById('home-content').innerHTML =
+      '<div class="error-msg" style="padding:32px 20px;text-align:center;color:var(--muted);line-height:1.8">' +
+      '<div style="font-size:32px;margin-bottom:12px">⚙️</div>' +
+      '<strong style="color:var(--ink);font-size:16px">Setup required</strong><br><br>' +
+      'Open <code>ritual.html</code> and fill in:<br>' +
+      '<code style="font-size:11px">CONFIG.SHEET_ID</code> — your ritual sheet ID<br>' +
+      '<code style="font-size:11px">CONFIG.API_KEY</code> — your Google API key<br>' +
+      '<code style="font-size:11px">OAUTH_CLIENT_ID</code> — your OAuth client ID' +
+      '</div>';
+    return;
+  }
+
   if (forceRefresh) bustLegendCache();
 
   const cachedLegend = loadLegendCache();
@@ -1258,7 +1232,7 @@ async function loadData(forceRefresh = false) {
     if (currentCategory) renderTasks();
     checkWelcomeBack();
     dailyRegen();
-    loadChores();
+    fetchHouseHealth();
   } catch(e) {
     document.getElementById('home-content').innerHTML =
       `<div class="error-msg">⚠️ Couldn't load<br>${e.message}<br><br>Check Sheet ID, API key,<br>and that the sheet is public.</div>`;
@@ -1285,14 +1259,7 @@ function parseTaskRows(rows) {
 
 
 
-// ─── HOME ─────────────────────────────────────────
-function openChoresView() {
-  renderChoresView();
-  document.getElementById('view-chores').style.display = 'flex';
-}
-function closeChoresView() {
-  document.getElementById('view-chores').style.display = 'none';
-}
+
 
 function showHome() {
   document.getElementById('view-home').classList.add('active');
@@ -1303,140 +1270,15 @@ function showHome() {
 
 
 
-// ─── Load chores from chores sheet ───────────────────
-function loadChores() {
-  // Skip if chores sheet not configured
-  if (CHORES_CONFIG.SHEET_ID.includes('YOUR_') || CHORES_CONFIG.API_KEY.includes('YOUR_')) {
-    console.info('Chores: configure CHORES_CONFIG to enable');
-    return;
-  }
-  const range = encodeURIComponent(`${CHORES_CONFIG.SHEET_NAME}!A${CHORES_CONFIG.DATA_START_ROW}:I`);
-  const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${range}?key=${CHORES_CONFIG.API_KEY}`;
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) { console.warn('Chores:', data.error.message); return; }
-      const rows = data.values || [];
-      // Parse room legend
-      choreRoomLegend = {};
-      rows.forEach(row => {
-        const cell = (row[8] || '').trim();
-        if (!cell) return;
-        const m = cell.match(/^(\w+)\s*=\s*(.+)/);
-        if (m) choreRoomLegend[m[1].toLowerCase()] = m[2].trim();
-      });
-      // Parse chores — filter out one-offs (maxDays=0)
-      allChores = rows.filter(r => r[0] && String(r[2] || '').trim() !== '0').map((row, i) => {
-        const name     = row[0] || '';
-        const minDays  = parseFloat(row[1]) || 1;
-        const maxDays  = parseFloat(row[2]) || 7;
-        const lastDone = parseDate(row[3] || '');
-        const room     = (row[4] || '').trim().toLowerCase();
-        const who      = (row[5] || '').trim();
-        const duration = parseInt(row[6]) || 0;
-        const days     = (Date.now() - (lastDone?.getTime() || 0)) / 86400000;
-        const ratio    = lastDone ? Math.min(days / maxDays, 1.8) : 1.5;
-        return { name, minDays, maxDays, lastDone, room, who, duration, days, ratio, sheetRow: CHORES_CONFIG.DATA_START_ROW + i, _isChore: true };
-      }).sort((a,b) => b.ratio - a.ratio);
-      updateChoresTile(); // update just the chores tile
-    })
-    .catch(e => console.warn('Chores load failed:', e));
-}
 
-function updateChoresTile() {
-  // Just re-render the standalone chores card without touching allTasks
-  const el = document.getElementById('chores-tile-card');
-  if (!el) return; // tile not rendered yet — renderHome will handle it on next call
-  const choresDue  = allChores.filter(c => c.ratio >= 0.65);
-  const choresOver = allChores.filter(c => c.ratio >= 1).length;
-  const choreColor = choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
-  const choreLabel = choresOver > 0 ? `${choresOver} overdue` : choresDue.length > 0 ? `${choresDue.length} due soon` : 'All clear';
-  const icon = choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓';
-  el.style.borderColor = choreColor + '30';
-  el.querySelector('.chores-tile-label').textContent = choreLabel + ' · tap to manage';
-  el.querySelector('.chores-tile-icon').textContent = icon;
-  el.querySelector('.chores-tile-icon').style.color = choreColor;
-}
 
-function choreRoomName(code) {
-  if (!code) return '';
-  return code.toLowerCase().split(' ').map(c => choreRoomLegend[c] || c).filter(Boolean).join(', ');
-}
 
-// Mark chore done — writes to chores sheet
-async function markChoreDone(sheetRow, cardEl) {
-  const chore = allChores.find(c => c.sheetRow === sheetRow);
-  if (!chore) return;
-  const now   = new Date();
-  const value = formatDate(now);
-  chore.lastDone = now; chore.days = 0; chore.ratio = 0;
 
-  if (cardEl) {
-    cardEl.style.opacity = '.5';
-    cardEl.style.pointerEvents = 'none';
-  }
 
-  // XP + HP
-  const g = addXP(XP_CHORE);
-  addHP(HP_CHORE);
-  showToast(`🏠 Done +${XP_CHORE} XP`, 1800);
-  renderGameCard();
 
-  const doWrite = async () => {
-    try {
-      const colD = `${CHORES_CONFIG.SHEET_NAME}!D${sheetRow}`;
-      const colF = `${CHORES_CONFIG.SHEET_NAME}!F${sheetRow}`;
-      const urlD = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${encodeURIComponent(colD)}?valueInputOption=RAW`;
-      const urlF = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${encodeURIComponent(colF)}?valueInputOption=RAW`;
-      await fetch(urlD, { method:'PUT', headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'}, body:JSON.stringify({values:[[value]]}) });
-      await fetch(urlF, { method:'PUT', headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'}, body:JSON.stringify({values:[[CHORES_CONFIG.YOUR_NAME]]}) });
-      if (cardEl) { cardEl.remove(); checkChoresClear(); }
-    } catch(e) { showToast('Chore save failed: ' + e.message); if(cardEl){cardEl.style.opacity='';cardEl.style.pointerEvents='';} }
-  };
-  if (accessToken) doWrite(); else { pendingWrite = { customCallback: doWrite }; initOAuth(); }
-}
 
-function checkChoresClear() {
-  const due = allChores.filter(c => c.ratio >= 0.65);
-  if (!due.length) {
-    burstParticles(innerWidth/2, innerHeight*.4, 50, 'rainbow');
-    showToast('All chores clear! 🏠✨', 2500);
-  }
-}
 
-function renderChoresView() {
-  const el = document.getElementById('chores-view-content');
-  if (!el) return;
-  const due = allChores.filter(c => !isSnoozed(c.sheetRow) && c.ratio >= 0.35);
-  if (!due.length) {
-    el.innerHTML = '<div class="empty-state"><span class="e-icon">🏠</span>All clear — no chores due.</div>';
-    return;
-  }
-  el.innerHTML = '';
-  due.forEach(c => {
-    const color = c.ratio >= 1 ? '#a03030' : c.ratio >= 0.85 ? '#c97c3c' : c.ratio >= 0.65 ? '#c9a84c' : '#5a8a5e';
-    const rLabel = choreRoomName(c.room);
-    const card = document.createElement('div');
-    card.style.cssText = 'background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;margin-bottom:10px;';
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="flex:1">
-          <div style="font-size:15px;font-weight:500">${c.name}</div>
-          ${rLabel ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">📍 ${rLabel}</div>` : ''}
-          ${c.duration ? `<div style="font-size:11px;color:var(--muted)">⏱ ${c.duration} min</div>` : ''}
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:11px;font-weight:600;color:${color}">${c.ratio>=1?'Overdue':c.ratio>=0.85?'Due soon':''}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px">${c.lastDone ? relativeTime(c.lastDone) : 'Never done'}</div>
-        </div>
-      </div>
-      <div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden">
-        <div style="height:100%;width:${Math.min(c.ratio*100,100)}%;background:${color};border-radius:2px"></div>
-      </div>
-      <button onclick="markChoreDone(${c.sheetRow},this.closest('[style]'))" style="margin-top:10px;width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;color:#f0e8d8;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">✓ Done +${XP_CHORE} XP</button>`;
-    el.appendChild(card);
-  });
-}
+
 
 // ─── Render game card ────────────────────────────────
 function renderGameCard() {
@@ -1521,6 +1363,71 @@ function closeNegativeSheet() {
   document.getElementById('neg-overlay').style.display = 'none';
 }
 
+
+// ─── House health (read-only from chores sheet) ───────
+const CHORES_APP_URL = 'https://tonyviking.github.io/kachores'; // ← your chores app URL
+
+function openChoresApp() {
+  window.location.href = CHORES_APP_URL;
+}
+
+async function fetchHouseHealth() {
+  // Uses a separate read-only chores sheet config
+  const CHORES_SHEET_ID  = 'YOUR_CHORES_SHEET_ID_HERE'; // ← paste chores sheet ID (NOT the ritual sheet ID)
+  const CHORES_API_KEY   = CONFIG.API_KEY;               // ← same API key
+  const CHORES_START_ROW = 2;
+
+  if (CHORES_SHEET_ID.includes('YOUR_')) {
+    updateHouseHealthCard('Configure chores sheet ID · tap to open app', '🏠');
+    return;
+  }
+
+  try {
+    const range = encodeURIComponent(`Sheet1!C${CHORES_START_ROW}:D`);
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_SHEET_ID}/values/${range}?key=${CHORES_API_KEY}`;
+    const res   = await fetch(url);
+    const data  = await res.json();
+    if (data.error) { updateHouseHealthCard('Tap to open chores app', '🏠'); return; }
+
+    const rows    = data.values || [];
+    const now     = Date.now();
+    let overdue   = 0;
+    let dueSoon   = 0;
+
+    rows.forEach(row => {
+      const maxDays  = parseFloat(row[0]) || 7;
+      if (maxDays === 0) return; // one-off
+      const lastDone = parseDate(row[1] || '');
+      if (!lastDone) { overdue++; return; }
+      const days  = (now - lastDone.getTime()) / 86400000;
+      const ratio = days / maxDays;
+      if (ratio >= 1)    overdue++;
+      else if (ratio >= 0.75) dueSoon++;
+    });
+
+    const label = overdue > 0
+      ? `${overdue} overdue · ${dueSoon} due soon · tap to manage`
+      : dueSoon > 0
+      ? `${dueSoon} due soon · tap to manage`
+      : 'All clear · tap to open chores app';
+
+    const icon  = overdue > 0 ? '⚠️' : dueSoon > 0 ? '📋' : '✅';
+    const color = overdue > 0 ? 'var(--c-over)' : dueSoon > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
+    updateHouseHealthCard(label, icon, color);
+  } catch(e) {
+    updateHouseHealthCard('Tap to open chores app', '🏠');
+  }
+}
+
+function updateHouseHealthCard(label, icon, color) {
+  const lbl  = document.getElementById('house-health-label');
+  const ico  = document.getElementById('house-health-icon');
+  const card = document.getElementById('house-health-card');
+  if (lbl)  lbl.textContent = label;
+  if (ico)  ico.textContent = icon;
+  if (card && color) card.style.borderColor = color + '40';
+}
+
 function renderHome() {
   const el = document.getElementById('home-content');
 
@@ -1552,13 +1459,16 @@ function renderHome() {
   // ── Game card (XP + HP + Rank) ──
   html += '<div id="game-card" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:12px"></div>';
 
+  // ── House health card ──
+  html += '<div id="house-health-card" onclick="openChoresApp()" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px"><span style="font-size:26px">🏠</span><div style="flex:1"><div style="font-size:15px;font-weight:600;font-family:Playfair Display,serif">House health</div><div id="house-health-label" style="font-size:11px;color:var(--muted);margin-top:1px">Loading…</div></div><div id="house-health-icon" style="font-size:18px;flex-shrink:0">🏠</div></div>';
+
   // ── Chores tile (always shown, below game card) ──
   const choresDue  = allChores.filter(c => c.ratio >= 0.65);
   const choresOver = allChores.filter(c => c.ratio >= 1).length;
   const choreColor = choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
   const choreLabel = choresOver > 0 ? `${choresOver} overdue` : choresDue.length > 0 ? `${choresDue.length} due soon` : 'All clear';
   const choreIcon  = choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓';
-  html += `<div id="chores-tile-card" onclick="openChoresView()" style="background:rgba(255,255,255,.05);border:1.5px solid ${choreColor}30;border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
+  html += `<div id="chores-tile-card" onclick="openChoresApp()" style="background:rgba(255,255,255,.05);border:1.5px solid ${choreColor}30;border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
     <span style="font-size:26px">🏠</span>
     <div style="flex:1">
       <div style="font-size:15px;font-weight:600;font-family:'Playfair Display',serif">Chores</div>
@@ -1745,6 +1655,10 @@ async function markDoneHome(sheetRow, btn, taskName) {
   // Apply locally immediately regardless of connectivity
   applyDoneLocally(sheetRow, now, btn);
 
+  // Award XP + HP for completing a ritual task
+  addXP(XP_RITUAL_TASK);
+  addHP(HP_RITUAL_TASK);
+  setTimeout(renderGameCard, 150);
 
   const cb = async () => {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
@@ -1982,6 +1896,10 @@ async function markDoneTask(sheetRow, btn) {
   // Apply locally immediately
   applyDoneLocally(sheetRow, now, btn);
 
+  // Award XP + HP for completing a ritual task
+  addXP(XP_RITUAL_TASK);
+  addHP(HP_RITUAL_TASK);
+  setTimeout(renderGameCard, 150);
 
   if (accessToken) { await writeToSheet(range, value, btn, sheetRow, now, false); }
   else { pendingWrite = { range, value, btn, sheetRow, timestamp: now, isHome: false }; initOAuth(); }
@@ -2551,6 +2469,10 @@ function renderRhythmDots(catCode) {
     return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
   }).join('');
 }
+
+
+
+
 
 
 
