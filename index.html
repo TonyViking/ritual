@@ -637,173 +637,14 @@
 
 
 <!-- ══ HOME VIEW ══ -->
-<!-- ══ TASK VIEW ══ -->
-<div class="view block" id="view-tasks">
-  <header>
-    <div>
-      <button class="back-btn" onclick="showHome()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Rituals
-      </button>
-    </div>
-    <div class="header-right">
-      <button class="icon-btn" onclick="openAddTask(currentCategory)" title="Add ritual">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
-    </div>
-  </header>
-  <div class="task-view-header">
-    <div class="task-cat-title">
-      <span id="task-view-emoji"></span>
-      <span id="task-view-title"></span>
-    </div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-fresh)"></div>Fresh</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-ok)"></div>Good</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-soon)"></div>Soon</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-due)"></div>Due</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-over)"></div>Overdue</div>
-  </div>
-  <div class="filter-bar" id="task-filter-bar">
-    <button class="filter-btn" data-days="2"   onclick="setFilter(2)">2 days</button>
-    <button class="filter-btn active" data-days="4" onclick="setFilter(4)">4 days</button>
-    <button class="filter-btn" data-days="7"   onclick="setFilter(7)">7 days</button>
-    <button class="filter-btn" data-days="14"  onclick="setFilter(14)">14 days</button>
-    <button class="filter-btn" data-days="30"  onclick="setFilter(30)">30 days</button>
-    <button class="filter-btn" data-days="999" onclick="setFilter(999)">All due</button>
-  </div>
-  <div class="task-list" id="task-list">
-    <div class="swipe-hint">← swipe left to done · snooze right</div>
-  </div>
-</div>
-
-<!-- ══ PAST ONE-OFFS SHEET ══ -->
-<div class="sheet-overlay" id="past-overlay" onclick="closePastOneOffs()"></div>
-<div class="bottom-sheet" id="past-sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <div class="sheet-title">Past One-offs</div>
-    <button class="sheet-close" onclick="closePastOneOffs()">×</button>
-  </div>
-  <div class="sheet-body" id="past-list">
-    <div class="loading-state"><div class="spinner"></div>Loading…</div>
-  </div>
-</div>
-
-<!-- ══ ADD TASK SHEET ══ -->
-<div id="lp-confirm"></div>
-<div id="toast"></div>
-
-
-</html<!-- ══ HOW TO SCREEN ══ -->
-<div id="howto-screen">
-  <div class="howto-header">
-    <div class="howto-title">How to use</div>
-    <button class="icon-btn" onclick="closeHowTo()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <div class="howto-body">
-
-    <div class="howto-section">
-      <div class="howto-section-title">Home screen</div>
-      <p>The home screen stacks top to bottom: your game card, house health, urgent tasks, and category tiles.</p>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">⚔️</div>
-        <div class="howto-tip-text"><strong>Game card</strong> — XP, rank, and HP bars. Tap the log button to record a negative item.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">🏠</div>
-        <div class="howto-tip-text"><strong>House health</strong> — reads your chores sheet and shows overdue or due soon count. Tap to open the chores app.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">⚠️</div>
-        <div class="howto-tip-text"><strong>Needs attention</strong> — your most urgent ritual tasks. Swipe left to mark done, swipe right to quiet until midnight.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">📂</div>
-        <div class="howto-tip-text"><strong>Categories</strong> — ritual categories as tiles with urgency colours and a 7-day rhythm strip. Tap to see tasks inside.</div>
-      </div>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">Ritual tasks</div>
-      <div class="howto-tip">
-        <div class="howto-tip-icon">←</div>
-        <div class="howto-tip-text"><strong>Swipe left</strong> to mark done — saves to your sheet and awards XP.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">→</div>
-        <div class="howto-tip-text"><strong>Swipe right</strong> to quiet until midnight — reappears tomorrow as normal.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">📂</div>
-        <div class="howto-tip-text">Tap a <strong>category tile</strong> to open all tasks in that category, sorted by urgency.</div>
-      </div>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">Urgency colours</div>
-      <div class="howto-tip"><div class="howto-tip-icon">🟢</div><div class="howto-tip-text"><strong>Green</strong> — recently done.</div></div>
-      <div class="howto-tip" style="margin-top:8px"><div class="howto-tip-icon">🟡</div><div class="howto-tip-text"><strong>Yellow</strong> — coming up soon.</div></div>
-      <div class="howto-tip" style="margin-top:8px"><div class="howto-tip-icon">🔴</div><div class="howto-tip-text"><strong>Red</strong> — overdue.</div></div>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">XP and ranking</div>
-      <p>Completing a ritual task awards <strong>+20 XP</strong>. Your fantasy rank rises as XP builds and drops if it falls.</p>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">🪨</div>
-        <div class="howto-tip-text">Stone Dweller → 🌿 Wanderer → ⚔️ Squire → 🛡️ Knight → 🌟 Champion → 🔥 Warrior → 💎 Hero → 🦅 Legend → 👑 Sovereign → 🐉 Mythic</div>
-      </div>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">HP and health</div>
-      <p>HP starts at 100. Completing ritual tasks restores HP. It regenerates +5 daily. Below 30 you'll get a care warning.</p>
-      <p style="margin-top:8px">Negative items reduce HP and XP when logged over their daily limit. They're just tasks in your sheet tagged with the <strong>neg</strong> category — you add and edit them yourself.</p>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">Negative items</div>
-      <p>Create a category in your sheet: add <code>neg = Negatives 💀</code> to column I. Then add tasks tagged <code>neg</code> in column E.</p>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">📅</div>
-        <div class="howto-tip-text"><strong>Column C (max days)</strong> = daily free uses. <strong>0</strong> = always harmful. <strong>4</strong> = free for 4 logs, harmful from the 5th.</div>
-      </div>
-      <div class="howto-tip" style="margin-top:8px">
-        <div class="howto-tip-icon">❤️</div>
-        <div class="howto-tip-text"><strong>Column B (min days)</strong> = HP cost per excess log. Leave <strong>0</strong> to use the default cost.</div>
-      </div>
-      <p style="margin-top:8px">Swipe left on a negative task to log one occurrence. The card shows today's count and limit. It never disappears from the list — you log as many times as needed.</p>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">One-off tasks</div>
-      <p>Set column F to <strong>1</strong> in your sheet for a task that should only appear once. Marking it done archives it to Sheet2 and removes it from the list.</p>
-    </div>
-
-    <div class="howto-section">
-      <div class="howto-section-title">Sheet layout</div>
-      <p><strong>A</strong> Name · <strong>B</strong> Min days · <strong>C</strong> Max days · <strong>D</strong> Last done · <strong>E</strong> Category codes · <strong>F</strong> "1" if one-off · <strong>I</strong> Legend e.g. <em>self = Self Care 🪥</em></p>
-    </div>
-
-  </div>
-</div>
-
-
-<!-- ══ HOME VIEW ══ -->
 <div class="view active" id="view-home" style="flex-direction:column">
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
-      <div class="header-sub" id="header-done-count"></div>
+      <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="icon-btn" onclick="refreshOAuth()" title="Reconnect Google">
+      <button class="icon-btn" onclick="refreshOAuth()" title="Reconnect">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10"/><polyline points="17 12 12 7 7 12"/><line x1="12" y1="7" x2="12" y2="17"/></svg>
       </button>
       <button class="icon-btn spin" onclick="loadData(true)" title="Refresh">
@@ -817,12 +658,9 @@
       </button>
     </div>
   </header>
-  
-<div id="neg-strip" style="padding:0 20px 4px;display:none"></div>
-<div id="home-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 20px calc(var(--safe-bot,0px)+80px)"></div>
+  <div id="streak-badge" style="display:none;align-items:center;gap:6px;padding:4px 20px;font-size:12px;color:var(--c-due)"></div>
+  <div id="home-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px calc(var(--safe-bot,0px)+80px)"></div>
 </div>
-
-
 
 <!-- ══ TASK VIEW ══ -->
 <div class="view block" id="view-tasks">
@@ -918,7 +756,7 @@
       <div class="cat-checks" id="new-cat-checks"></div>
     </div>
     <div id="neg-info" style="display:none;font-size:12px;color:var(--muted);padding:8px 12px;background:rgba(201,124,60,.08);border-radius:10px;border:1px solid rgba(201,124,60,.2);margin-bottom:12px">
-      Appears on home screen. Tap to log an occurrence. Over the daily limit = costs HP + XP.
+      Appears on home screen. Tap to log an occurrence. Over the daily limit costs HP and XP.
     </div>
     <button class="submit-btn" id="add-submit-btn" onclick="submitNewTask()">Add Ritual</button>
   </div>
@@ -927,7 +765,13 @@
 <div id="lp-confirm"></div>
 <div id="toast"></div>
 
+
+
+
+
 <script>
+
+
 
 
 
@@ -962,7 +806,7 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // Chores app (for house health card link)
 const CHORES_APP_URL   = 'https://tonyviking.github.io/kachores'; // ← your chores app URL
-const CHORES_SHEET_ID  = 'YOUR_CHORES_SHEET_ID_HERE';             // ← your CHORES sheet ID
+const CHORES_SHEET_ID  = '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE';             // ← your CHORES sheet ID
 // Note: CHORES_SHEET_ID is different from CONFIG.SHEET_ID above
 
 // ─── State ────────────────────────────────────────────────────────────────
@@ -1286,6 +1130,47 @@ function dailyRegen() {
 }
 
 // ─── Negative items ───────────────────────────────────────────────────────
+// ─── Game card render ─────────────────────────────────────────────────────
+function renderGameCard() {
+  const el=document.getElementById('game-card'); if (!el) return;
+  const g=loadGame(), xp=g.xp||0, hp=Math.round(g.hp??HP_MAX);
+  if (!RANKS||!RANKS.length) return;
+  const rank=getRank(xp), prog=rankProgress(xp), toNext=xpToNextRank(xp);
+  const negCounts=getNegCounts();
+  const negHits=allNegItems.filter(n=>negCounts[String(n.sheetRow)]>0);
+  const negOverLimit=allNegItems.filter(n=>{
+    const cnt=negCounts[String(n.sheetRow)]||0, lim=n.limit||0;
+    return lim===0?cnt>0:cnt>lim;
+  });
+  const negSummary=negHits.length
+    ? (negOverLimit.length
+        ? negHits.length+' logged today · '+negOverLimit.length+' over limit'
+        : negHits.length+' logged today · all within limits')
+    : '';
+  const hpColor=hp>60?'#5a8a5e':hp>30?'#c9a84c':'#a03030';
+  el.innerHTML=
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
+      '<div style="font-size:36px;line-height:1">'+rank.emoji+'</div>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:17px;font-weight:700;color:'+rank.color+';font-family:Playfair Display,serif">'+rank.name+'</div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:1px">'+xp+' XP'+(toNext?' · '+toNext+' to next rank':' · Max rank')+'</div>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<div style="font-size:20px;font-weight:700;color:'+hpColor+'">'+hp+'</div>'+
+        '<div style="font-size:10px;color:var(--muted);letter-spacing:.5px">HP</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:6px">'+
+      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Rank progress</span><span>'+prog+'%</span></div>'+
+      '<div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+prog+'%;background:'+rank.color+';border-radius:4px;transition:width 1s ease"></div></div>'+
+    '</div>'+
+    '<div style="margin-bottom:'+(negSummary?'10':'0')+'px">'+
+      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Health</span><span>'+hp+'/100</span></div>'+
+      '<div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+hp+'%;background:'+hpColor+';border-radius:4px;transition:width 1s ease"></div></div>'+
+    '</div>'+
+    (negSummary?'<div style="font-size:11px;color:#c97c3c;margin-top:8px;padding:6px 10px;background:rgba(201,124,60,.1);border-radius:8px">'+negSummary+'</div>':'');
+}
+
 // ─── Negative items (Sheet3) ─────────────────────────────────────────────
 function getNegCounts() {
   // Local cache — counts are also written to Sheet3 but cached here for speed
@@ -1367,22 +1252,35 @@ async function logNegOccurrence(item) {
 }
 
 function renderNegStrip() {
-  const el=document.getElementById('neg-strip'); if (!el) return;
-  if (!allNegItems.length) { el.style.display='none'; return; }
-  el.style.display='block';
-  const counts=getNegCounts();
-  el.innerHTML=
-    '<div class="section-label" style="margin-bottom:8px">Negative items</div>'+
-    allNegItems.map(item=>{
-      const count=counts[String(item.sheetRow)]||0;
-      const limit=item.limit||0;
-      const over=limit===0?count>0:count>limit;
-      const pct=limit===0?Math.min(count*25,100):Math.min((count/limit)*100,200);
-      const color=over?'var(--c-over)':count>0?'var(--c-due)':'rgba(255,255,255,.2)';
-      const label=limit===0
-        ? (count>0?count+' today · always counts':'0 — tap to log')
+  // Render neg items into a collapsible section inside home-content
+  let section = document.getElementById('neg-section');
+  if (!section) return; // home-content not rendered yet
+  if (!allNegItems.length) { section.style.display='none'; return; }
+  section.style.display = 'block';
+  const counts = getNegCounts();
+  const anyLogged = allNegItems.some(n => counts[String(n.sheetRow)] > 0);
+  const anyOver   = allNegItems.some(n => {
+    const cnt=counts[String(n.sheetRow)]||0, lim=n.limit||0;
+    return lim===0?cnt>0:cnt>lim;
+  });
+  const headerColor = anyOver ? 'var(--c-over)' : anyLogged ? 'var(--c-due)' : 'rgba(255,255,255,.4)';
+  const badge = anyOver ? ' ⚠️' : anyLogged ? ' •' : '';
+  section.innerHTML =
+    '<div onclick="toggleNegSection()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 0 6px;user-select:none">'+
+      '<div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;color:'+headerColor+'">Negative items'+badge+'</div>'+
+      '<div id="neg-chevron" style="font-size:12px;color:var(--muted);transition:transform .25s">›</div>'+
+    '</div>'+
+    '<div id="neg-list" style="display:none">'+
+    allNegItems.map(item => {
+      const count = counts[String(item.sheetRow)] || 0;
+      const limit = item.limit || 0;
+      const over  = limit===0 ? count>0 : count>limit;
+      const pct   = limit===0 ? Math.min(count*25,100) : Math.min((count/limit)*100,200);
+      const color = over ? 'var(--c-over)' : count>0 ? 'var(--c-due)' : 'rgba(255,255,255,.15)';
+      const label = limit===0
+        ? (count>0 ? count+' today · always counts' : 'Tap to log')
         : count+'/'+limit+' today'+(over?' · over limit':'');
-      return '<div style="background:rgba(255,255,255,.04);border:1.5px solid '+(over?'var(--c-over)30':'rgba(255,255,255,.08)')+';border-radius:12px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="logNegOccurrence(allNegItems.find(n=>n.sheetRow==='+item.sheetRow+'))">'+
+      return '<div style="background:rgba(255,255,255,.04);border:1.5px solid '+(over?'rgba(160,48,48,.4)':'rgba(255,255,255,.08)')+';border-radius:12px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="logNegOccurrence(allNegItems.find(n=>n.sheetRow==='+item.sheetRow+'))">'+
         '<div style="flex:1">'+
           '<div style="font-size:14px;font-weight:500">'+item.name+'</div>'+
           '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+label+'</div>'+
@@ -1392,94 +1290,19 @@ function renderNegStrip() {
         '</div>'+
         '<div style="font-size:22px;font-weight:700;color:'+color+';min-width:28px;text-align:right">+1</div>'+
       '</div>';
-    }).join('');
+    }).join('')+
+    '</div>';
 }
 
-// ─── Game card render ─────────────────────────────────────────────────────
-function renderGameCard() {
-  const el=document.getElementById('game-card'); if (!el) return;
-  const g=loadGame(), xp=g.xp||0, hp=Math.round(g.hp??HP_MAX);
-  const rank=getRank(xp), prog=rankProgress(xp), toNext=xpToNextRank(xp);
-  const negCounts=getNegCounts();
-  const negHits=allNegItems.filter(n=>negCounts[String(n.sheetRow)]>0);
-  const negOverLimit=allNegItems.filter(n=>{
-    const cnt=negCounts[String(n.sheetRow)]||0, lim=n.limit||0;
-    return lim===0?cnt>0:cnt>lim;
-  });
-  const negSummary=negHits.length
-    ? (negOverLimit.length
-        ? negHits.length+' logged today · '+negOverLimit.length+' over limit'
-        : negHits.length+' logged today · all within limits')
-    : '';
-  const hpColor=hp>60?'#5a8a5e':hp>30?'#c9a84c':'#a03030';
-  el.innerHTML=
-    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
-      '<div style="font-size:36px;line-height:1">'+rank.emoji+'</div>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:17px;font-weight:700;color:'+rank.color+";font-family:Playfair Display,serif">+rank.name+'</div>'+
-        '<div style="font-size:11px;color:var(--muted);margin-top:1px">'+xp+' XP'+(toNext?' · '+toNext+' to next rank':' · Max rank')+'</div>'+
-      '</div>'+
-      '<div style="text-align:right">'+
-        '<div style="font-size:20px;font-weight:700;color:'+hpColor+'">'+hp+'</div>'+
-        '<div style="font-size:10px;color:var(--muted);letter-spacing:.5px">HP</div>'+
-      '</div>'+
-    '</div>'+
-    '<div style="margin-bottom:6px">'+
-      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Rank progress</span><span>'+prog+'%</span></div>'+
-      '<div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+prog+'%;background:'+rank.color+';border-radius:4px;transition:width 1s ease"></div></div>'+
-    '</div>'+
-    '<div style="margin-bottom:'+(negSummary?'10':'0')+'px">'+
-      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Health</span><span>'+hp+'/100</span></div>'+
-      '<div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+hp+'%;background:'+hpColor+';border-radius:4px;transition:width 1s ease"></div></div>'+
-    '</div>'+
-    (negSummary?'<div style="font-size:11px;color:#c97c3c;margin-top:8px;padding:6px 10px;background:rgba(201,124,60,.1);border-radius:8px">'+negSummary+'</div>':'');
+function toggleNegSection() {
+  const list = document.getElementById('neg-list');
+  const chev = document.getElementById('neg-chevron');
+  if (!list) return;
+  const open = list.style.display === 'block';
+  list.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? '' : 'rotate(90deg)';
 }
 
-// ─── House health (read-only from chores sheet) ───────────────────────────
-function openChoresApp() { window.location.href = CHORES_APP_URL; }
-
-async function fetchHouseHealth() {
-  // Reads cols C+D from chores sheet — max days and last done date
-  // No writing — purely for the health indicator
-  if (CHORES_SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) {
-    updateHouseHealthCard('Tap to open chores app', '🏠', null);
-    return;
-  }
-  try {
-    const range = encodeURIComponent('Sheet1!C2:D');
-    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
-    const res   = await fetch(url);
-    const data  = await res.json();
-    if (data.error) { updateHouseHealthCard('Tap to open chores app', '🏠', null); return; }
-    const rows=data.values||[];
-    const now=Date.now();
-    let overdue=0, dueSoon=0;
-    rows.forEach(row => {
-      const maxDays=parseFloat(row[0])||7;
-      if (maxDays===0) return; // one-off
-      const lastDone=parseDate(row[1]||'');
-      if (!lastDone) { overdue++; return; }
-      const ratio=(now-lastDone.getTime())/86400000/maxDays;
-      if (ratio>=1) overdue++;
-      else if (ratio>=0.75) dueSoon++;
-    });
-    const label = overdue>0 ? `${overdue} overdue · ${dueSoon} due soon · tap to manage`
-                : dueSoon>0 ? `${dueSoon} due soon · tap to manage`
-                : 'All clear · tap to open chores app';
-    const icon  = overdue>0 ? '⚠️' : dueSoon>0 ? '📋' : '✅';
-    const color = overdue>0 ? 'var(--c-over)' : dueSoon>0 ? 'var(--c-due)' : 'var(--c-fresh)';
-    updateHouseHealthCard(label, icon, color);
-  } catch { updateHouseHealthCard('Tap to open chores app', '🏠', null); }
-}
-
-function updateHouseHealthCard(label, icon, color) {
-  const lbl=document.getElementById('house-health-label');
-  const ico=document.getElementById('house-health-icon');
-  const card=document.getElementById('house-health-card');
-  if (lbl) lbl.textContent=label;
-  if (ico) ico.textContent=icon;
-  if (card && color) card.style.borderColor=color+'40';
-}
 
 // ─── OAuth ────────────────────────────────────────────────────────────────
 function isTokenValid() { return accessToken && Date.now() < tokenExpiry - 30000; }
@@ -1671,6 +1494,9 @@ function renderHome() {
   // Game card
   html+='<div id="game-card" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:12px"></div>';
 
+  // Neg section placeholder (populated by renderNegStrip)
+  html += '<div id="neg-section" style="display:none;margin-bottom:8px"></div>';
+
   // House health card
   html+=`<div id="house-health-card" onclick="openChoresApp()" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
     <span style="font-size:26px">🏠</span>
@@ -1735,8 +1561,9 @@ function renderHome() {
 
   el.innerHTML=html;
 
-  // Render game card now element exists in DOM
+  // Render game card and neg section now elements exist in DOM
   renderGameCard();
+  renderNegStrip();
 
   // Populate urgent strip — ritual tasks only
   const strip=el.querySelector('#urgent-strip');
@@ -1962,6 +1789,9 @@ async function markDoneTask(sheetRow, btn) {
   const now=new Date(), value=formatDate(now);
   const range=`${CONFIG.SHEET_NAME}!${colLetter(CONFIG.COL_LAST_DONE)}${sheetRow}`;
   applyDoneLocally(sheetRow, now, btn);
+  addXP(XP_RITUAL_TASK);
+  addHP(HP_RITUAL_TASK);
+  setTimeout(renderGameCard, 150);
   if (isTokenValid()) await writeToSheet(range, value, btn, sheetRow, now, false);
   else { pendingWrite={range,value,btn,sheetRow,timestamp:now,isHome:false}; initOAuth(); }
 }
@@ -2295,5 +2125,7 @@ updateLandingGreeting();
 
 
 
+
+
 </script>
-                                                  </html>
+  </html>
