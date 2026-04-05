@@ -595,6 +595,9 @@
       <div id="streak-badge" style="display:none;align-items:center;gap:5px;font-size:10px;color:var(--c-soon);letter-spacing:.3px;margin-top:2px"></div>
     </div>
     <div class="header-right">
+      <button class="icon-btn" onclick="refreshOAuth()" title="Reconnect Google" id="oauth-refresh-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10"/><polyline points="17 12 12 7 7 12"/><line x1="12" y1="7" x2="12" y2="17"/></svg>
+      </button>
       <button class="icon-btn spin" onclick="loadData(true)" title="Refresh (busts legend cache)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -748,6 +751,7 @@
 
 
 
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -761,9 +765,9 @@
 ═══════════════════════════════════════════════════ */
 // ─── Chores Sheet CONFIG ─────────────────────────────
 const CHORES_CONFIG = {
-  SHEET_ID:      '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE',
+  SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDx50f2EyVKs6YEStDEDugEowN7yplhrLE',
+  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',
   COL_NAME:      1,
   COL_MIN_DAYS:  2,
   COL_MAX_DAYS:  3,
@@ -777,9 +781,9 @@ const CHORES_CONFIG = {
 };
 
 const CONFIG = {
-  SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',
+  SHEET_ID:      '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE',
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',
+  API_KEY:       'AIzaSyDx50f2EyVKs6YEStDEDugEowN7yplhrLE',
   COL_NAME:      1,
   COL_MIN:       2,
   COL_MAX:       3,
@@ -790,12 +794,13 @@ const CONFIG = {
   ARCHIVE_SHEET: 'Sheet2', // tab for completed one-offs
   DATA_START_ROW: 2,
 };
-const OAUTH_CLIENT_ID = '321304865512-53n0nqgmg7il2i7mjinni0efd025lpgi.apps.googleusercontent.com';
+const OAUTH_CLIENT_ID = '910424254552-q29kncg9tni3a7nqcvqbd3kjm1kuche0.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // ─── State ────────────────────────────────────────
 let tokenClient     = null;
 let accessToken     = null;
+let tokenExpiry     = 0;
 let pendingWrite    = null;
 let allTasks        = [];
 let allChores       = [];
@@ -1453,22 +1458,21 @@ function renderHome() {
     html += '<div class="empty-state"><span class="e-icon">💀</span>No categories found.<br><span style="font-size:12px;opacity:.6">Add entries to column I of your sheet<br>e.g. <code>self = Self Care 🪥</code></span></div>';
   } else {
     html += '<div class="section-label" style="margin-top:16px">Categories</div>';
-    html += '<div class="category-grid" id="cat-grid">';
-    // ── Chores tile ──────────────────────────────────
-    const choresDue = allChores.filter(c => c.ratio >= 0.65);
-    const choresOver= allChores.filter(c => c.ratio >= 1).length;
-    const choreColor= choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
-    html += `<div class="cat-card" onclick="openChoresView()" style="border-color:${choreColor}20;background:${choreColor}08">
-      <div class="cat-top">
-        <span class="cat-emoji">🏠</span>
-        <button class="cat-tap-btn" onclick="event.stopPropagation();openChoresView()">›</button>
-      </div>
-      <div class="cat-name">Chores</div>
-      <div class="cat-meta">${choresDue.length} due · ${choresOver} overdue</div>
-      <div class="cat-urgency-bar" style="background:${choreColor}20">
-        <div class="cat-urgency-fill" style="width:${Math.min((choresOver/Math.max(allChores.length,1))*200,100)}%;background:${choreColor}"></div>
-      </div>
-    </div>`;
+    // ── Chores card (below game card, above categories) ──
+  const choresDue  = allChores.filter(c => c.ratio >= 0.65);
+  const choresOver = allChores.filter(c => c.ratio >= 1).length;
+  const choreColor = choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
+  const choreLabel = choresOver > 0 ? `${choresOver} overdue` : choresDue.length > 0 ? `${choresDue.length} due soon` : 'All clear';
+  html += `<div onclick="openChoresView()" style="background:rgba(255,255,255,.05);border:1.5px solid ${choreColor}30;border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
+    <span style="font-size:26px">🏠</span>
+    <div style="flex:1">
+      <div style="font-size:15px;font-weight:600;font-family:'Playfair Display',serif">Chores</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:1px">${choreLabel} · tap to manage</div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:${choreColor};flex-shrink:0">${choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓'}</div>
+  </div>`;
+
+  html += '<div class="category-grid" id="cat-grid">';
     sortedCats.forEach(cat => {
       const catTasks = allTasks.filter(t => t.cats.includes(cat.code));
       const ratios   = catTasks.map(t => urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)));
@@ -2261,7 +2265,7 @@ function snoozeTask(sheetRow) {
   const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
   snoozed[sheetRow] = midnight.getTime();
   localStorage.setItem(SNOOZE_KEY, JSON.stringify(snoozed));
-  showToast('Hidden until tomorrow 💤');
+  showToast('Quiet until midnight 🌙');
 }
 
 function isSnoozed(sheetRow) {
@@ -2277,6 +2281,17 @@ function isSnoozed(sheetRow) {
 }
 
 // ─── OAuth ────────────────────────────────────────
+function isTokenValid() {
+  return accessToken && Date.now() < tokenExpiry - 30000;
+}
+
+function refreshOAuth() {
+  accessToken = null;
+  tokenExpiry = 0;
+  showToast('Reconnecting…');
+  initOAuth();
+}
+
 function initOAuth() {
   if (OAUTH_CLIENT_ID.includes('YOUR_OAUTH_CLIENT_ID_HERE')) {
     showToast('Set OAUTH_CLIENT_ID to enable saving');
@@ -2302,6 +2317,7 @@ function startTokenFlow() {
         return;
       }
       accessToken = resp.access_token;
+      tokenExpiry = Date.now() + 3540000; // 59 min
       if (pendingWrite) {
         const pw = pendingWrite; pendingWrite = null;
         if (pw.customCallback) { await pw.customCallback(); }
@@ -2309,7 +2325,7 @@ function startTokenFlow() {
       }
     },
   });
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  tokenClient.requestAccessToken({ prompt: '' });
 }
 
 // ─── Offline badge ────────────────────────────────
@@ -2330,7 +2346,7 @@ function beginRitual() {
   setTimeout(() => {
     ls.style.display = 'none';
     // Trigger OAuth immediately so token is ready before first write
-    if (!accessToken) initOAuth();
+    if (!isTokenValid()) initOAuth();
     loadData();
   }, 400);
 }
@@ -2461,6 +2477,7 @@ function renderRhythmDots(catCode) {
     return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
   }).join('');
 }
+
 
 
 
