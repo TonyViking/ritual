@@ -752,6 +752,7 @@
 
 
 
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -767,7 +768,7 @@
 const CHORES_CONFIG = {
   SHEET_ID:      '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE',
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',
+  API_KEY:       'AIzaSyDx50f2EyVKs6YEStDEDugEowN7yplhrLE',
   COL_NAME:      1,
   COL_MIN_DAYS:  2,
   COL_MAX_DAYS:  3,
@@ -783,7 +784,7 @@ const CHORES_CONFIG = {
 const CONFIG = {
   SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',
+  API_KEY:       'AIzaSyDx50f2EyVKs6YEStDEDugEowN7yplhrLE',
   COL_NAME:      1,
   COL_MIN:       2,
   COL_MAX:       3,
@@ -794,7 +795,7 @@ const CONFIG = {
   ARCHIVE_SHEET: 'Sheet2', // tab for completed one-offs
   DATA_START_ROW: 2,
 };
-const OAUTH_CLIENT_ID = '321304865512-53n0nqgmg7il2i7mjinni0efd025lpgi.apps.googleusercontent.com';
+const OAUTH_CLIENT_ID = '910424254552-q29kncg9tni3a7nqcvqbd3kjm1kuche0.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // ─── State ────────────────────────────────────────
@@ -1140,6 +1141,11 @@ function logNegativeItem(id) {
 }
 
 async function loadData(forceRefresh = false) {
+  // Purge any expired snooze entries
+  const _sn = getSnoozed();
+  let _changed = false;
+  for (const k of Object.keys(_sn)) { if (Date.now() > _sn[k]) { delete _sn[k]; _changed = true; } }
+  if (_changed) localStorage.setItem(SNOOZE_KEY, JSON.stringify(_sn));
 
   document.getElementById('home-content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
 
@@ -1537,7 +1543,7 @@ function renderHome() {
 
       const bgSnooze = document.createElement('div');
       bgSnooze.className = 'swipe-bg-snooze';
-      bgSnooze.innerHTML = '💤';
+      bgSnooze.innerHTML = '🌙';
 
       const card = document.createElement('div');
       card.className = 'urgent-card';
@@ -1580,7 +1586,7 @@ function renderHome() {
       bgDone.className = 'swipe-bg-done'; bgDone.innerHTML = '✓';
 
       const bgSnooze = document.createElement('div');
-      bgSnooze.className = 'swipe-bg-snooze'; bgSnooze.innerHTML = '💤';
+      bgSnooze.className = 'swipe-bg-snooze'; bgSnooze.innerHTML = '🌙';
 
       const card = document.createElement('div');
       card.className = 'urgent-card';
@@ -1732,7 +1738,7 @@ function setFilter(days) {
 function renderTasks() {
   const list = document.getElementById('task-list');
   // Keep swipe hint, clear rest
-  list.innerHTML = '<div class="swipe-hint">← swipe left to done · snooze right</div>';
+  list.innerHTML = '<div class="swipe-hint">← swipe left to done · quiet right 🌙</div>';
 
   const catTasks = allTasks.filter(t => t.cats.includes(currentCategory));
   const sorted   = [...catTasks].sort((a, b) =>
@@ -1768,7 +1774,7 @@ function renderTasks() {
 
     const bgSnooze = document.createElement('div');
     bgSnooze.className = 'swipe-bg-snooze';
-    bgSnooze.innerHTML = '💤';
+    bgSnooze.innerHTML = '🌙';
 
     const card = document.createElement('div');
     card.className = 'task-card';
@@ -1895,7 +1901,7 @@ function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
       card.style.animation = 'cardSnap .35s ease forwards';
       setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
     } else if (dx >= THRESHOLD) {
-      // Swipe right — snooze 1 day
+      // Swipe right — quiet until midnight
       card.style.transform = 'translateX(110%)';
       card.style.opacity = '0';
       snoozeTask(sheetRow);
@@ -2257,7 +2263,17 @@ function closePastOneOffs() {
 const SNOOZE_KEY = 'ritual_snoozed_v1';
 
 function getSnoozed() {
-  try { return JSON.parse(localStorage.getItem(SNOOZE_KEY)) || {}; } catch { return {}; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(SNOOZE_KEY)) || {};
+    // Purge any expired entries
+    const now = Date.now();
+    let changed = false;
+    for (const k of Object.keys(raw)) {
+      if (now > raw[k]) { delete raw[k]; changed = true; }
+    }
+    if (changed) localStorage.setItem(SNOOZE_KEY, JSON.stringify(raw));
+    return raw;
+  } catch { return {}; }
 }
 
 function snoozeTask(sheetRow) {
@@ -2477,6 +2493,7 @@ function renderRhythmDots(catCode) {
     return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
   }).join('');
 }
+
 
 
 
