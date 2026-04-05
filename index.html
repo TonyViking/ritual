@@ -781,6 +781,8 @@
 
 
 
+
+
 // ─── Configuration ────────────────────────────────────────────────────────
 // IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
 // The ritual sheet has category codes in col E and a legend in col I
@@ -1308,6 +1310,54 @@ function toggleNegSection() {
 function isTokenValid() { return accessToken && Date.now() < tokenExpiry - 30000; }
 
 function refreshOAuth() { accessToken=null; tokenExpiry=0; showToast('Reconnecting…'); initOAuth(); }
+
+
+// ─── House health (read-only from chores sheet) ───────────────────────────
+function openChoresApp() {
+  window.location.href = CHORES_APP_URL;
+}
+
+function updateHouseHealthCard(label, icon, color) {
+  const lbl  = document.getElementById('house-health-label');
+  const ico  = document.getElementById('house-health-icon');
+  const card = document.getElementById('house-health-card');
+  if (lbl)  lbl.textContent = label;
+  if (ico)  ico.textContent = icon;
+  if (card && color) card.style.borderColor = color + '40';
+}
+
+async function fetchHouseHealth() {
+  if (CHORES_SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) {
+    updateHouseHealthCard('Tap to open chores app', '🏠', null);
+    return;
+  }
+  try {
+    const range = encodeURIComponent('Sheet1!C2:D');
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const res   = await fetch(url);
+    const data  = await res.json();
+    if (data.error) { updateHouseHealthCard('Tap to open chores app', '🏠', null); return; }
+    const rows = data.values || [];
+    const now  = Date.now();
+    let overdue = 0, dueSoon = 0;
+    rows.forEach(row => {
+      const maxDays  = parseFloat(row[0]) || 7;
+      if (maxDays === 0) return;
+      const lastDone = parseDate(row[1] || '');
+      if (!lastDone) { overdue++; return; }
+      const ratio = (now - lastDone.getTime()) / 86400000 / maxDays;
+      if (ratio >= 1) overdue++;
+      else if (ratio >= 0.75) dueSoon++;
+    });
+    const label = overdue > 0
+      ? `${overdue} overdue · ${dueSoon} due soon · tap to manage`
+      : dueSoon > 0 ? `${dueSoon} due soon · tap to manage`
+      : 'All clear · tap to open chores app';
+    const icon  = overdue > 0 ? '⚠️' : dueSoon > 0 ? '📋' : '✅';
+    const color = overdue > 0 ? 'var(--c-over)' : dueSoon > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
+    updateHouseHealthCard(label, icon, color);
+  } catch { updateHouseHealthCard('Tap to open chores app', '🏠', null); }
+}
 
 function initOAuth() {
   if (OAUTH_CLIENT_ID.includes('YOUR_OAUTH_CLIENT_ID_HERE')) {
@@ -2127,5 +2177,7 @@ updateLandingGreeting();
 
 
 
+
+
 </script>
-  </html>
+        </html>
