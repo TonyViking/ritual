@@ -616,6 +616,32 @@
   <div id="home-content"></div>
 </div>
 
+<!-- ══ CHORES VIEW ══ -->
+<div class="view" id="view-chores" style="display:none">
+  <header>
+    <div>
+      <button class="back-btn" onclick="closeChoresView()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+    <div class="header-title">🏠 Chores</div>
+    <div style="width:38px"></div>
+  </header>
+  <div id="chores-view-content" style="padding:16px 20px calc(var(--safe-bot)+40px)"></div>
+</div>
+
+<!-- ══ NEGATIVE ITEMS OVERLAY ══ -->
+<div id="neg-overlay" onclick="closeNegativeSheet()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:flex-end">
+  <div onclick="event.stopPropagation()" style="background:#1a1210;border-radius:24px 24px 0 0;width:100%;max-height:85dvh;overflow-y:auto;padding:0 20px calc(var(--safe-bot)+20px)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0 10px;position:sticky;top:0;background:#1a1210">
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600">Log item</div>
+      <button onclick="closeNegativeSheet()" style="background:none;border:1.5px solid rgba(255,255,255,.15);border-radius:50%;width:32px;height:32px;color:#f0e8d8;font-size:18px;cursor:pointer">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Items within daily limits don't cost HP. Over the limit and it hits.</div>
+    <div id="neg-sheet"></div>
+  </div>
+</div>
+
 <!-- ══ TASK VIEW ══ -->
 <div class="view" id="view-tasks">
   <header>
@@ -719,6 +745,8 @@
 
 
 
+
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -730,6 +758,23 @@
      E = Category codes, space-separated  e.g. "self mind"
      I = Category legend  e.g. "self = Self Care 🪥"
 ═══════════════════════════════════════════════════ */
+// ─── Chores Sheet CONFIG ─────────────────────────────
+const CHORES_CONFIG = {
+  SHEET_ID:      '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE',
+  SHEET_NAME:    'Sheet1',
+  API_KEY:       'AIzaSyDx50f2EyVKs6YEStDEDugEowN7yplhrLE',
+  COL_NAME:      1,
+  COL_MIN_DAYS:  2,
+  COL_MAX_DAYS:  3,
+  COL_LAST_DONE: 4,
+  COL_ROOM:      5,
+  COL_WHO:       6,
+  COL_DURATION:  7,
+  COL_LEGEND:    9,
+  DATA_START_ROW: 2,
+  YOUR_NAME:     'Anthony',
+};
+
 const CONFIG = {
   SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',
   SHEET_NAME:    'Sheet1',
@@ -752,6 +797,8 @@ let tokenClient     = null;
 let accessToken     = null;
 let pendingWrite    = null;
 let allTasks        = [];
+let allChores       = [];
+let choreRoomLegend = {};
 let categories      = [];
 let currentCategory = null;
 let filterDays      = 4;
@@ -886,6 +933,148 @@ function parseLegend(rows) {
 
 // ─── Load data ────────────────────────────────────
 // forceRefresh=true busts the legend cache (used by the refresh button)
+async 
+// ─── Gamification constants ──────────────────────────
+const XP_RITUAL_TASK = 20;
+const XP_CHORE       = 15;
+const XP_NEGATIVE    = -5;  // per excess hit
+const HP_MAX         = 100;
+const HP_REGEN_DAILY = 5;   // passive daily regen
+const HP_RITUAL_TASK = 3;
+const HP_CHORE       = 2;
+
+const RANKS = [
+  { min:0,    name:'Stone Dweller',  emoji:'🪨', color:'#6a5a4a' },
+  { min:50,   name:'Wanderer',       emoji:'🌿', color:'#5a8a5e' },
+  { min:150,  name:'Squire',         emoji:'⚔️',  color:'#6a7aaa' },
+  { min:350,  name:'Knight',         emoji:'🛡️',  color:'#5a6a9a' },
+  { min:700,  name:'Champion',       emoji:'🌟', color:'#c9a84c' },
+  { min:1200, name:'Warrior',        emoji:'🔥', color:'#c97c3c' },
+  { min:2000, name:'Hero',           emoji:'💎', color:'#6a9aca' },
+  { min:3200, name:'Legend',         emoji:'🦅', color:'#9a6aca' },
+  { min:5000, name:'Sovereign',      emoji:'👑', color:'#c9a830' },
+  { min:8000, name:'Mythic',         emoji:'🐉', color:'#a03030' },
+];
+
+// Negative items: { id, name, icon, limit(per day, 0=always bad), hpCost, xpCost, desc }
+const NEGATIVE_ITEMS = [
+  { id:'alcohol',  name:'Alcohol',        icon:'🍺', limit:2, hpCost:8,  xpCost:5,  desc:'1–2 is fine, each extra hits hard' },
+  { id:'junk',     name:'Junk food',      icon:'🍔', limit:1, hpCost:5,  xpCost:3,  desc:'One treat is fine' },
+  { id:'latenight',name:'Late night',     icon:'🌙', limit:0, hpCost:10, xpCost:5,  desc:'Sleep matters' },
+  { id:'nap',      name:'Skipped workout',icon:'😴', limit:0, hpCost:6,  xpCost:4,  desc:'Movement keeps you going' },
+  { id:'smoking',  name:'Smoking',        icon:'🚬', limit:0, hpCost:15, xpCost:10, desc:'Always harmful' },
+  { id:'binge',    name:'Binge drinking', icon:'🥃', limit:0, hpCost:25, xpCost:15, desc:'6+ drinks — serious hit' },
+  { id:'skip_meal',name:'Skipped meals',  icon:'🍽️', limit:0, hpCost:8,  xpCost:4,  desc:'Fuelling matters' },
+  { id:'stress',   name:'High stress day',icon:'😤', limit:0, hpCost:5,  xpCost:2,  desc:'Log it, acknowledge it' },
+];
+
+const GAME_KEY = 'ritual_game_v1';
+const NEG_KEY  = 'ritual_neg_v1';  // today's negative item counts
+
+function loadGame() {
+  try { return JSON.parse(localStorage.getItem(GAME_KEY)) || {}; } catch { return {}; }
+}
+function saveGame(g) { localStorage.setItem(GAME_KEY, JSON.stringify(g)); }
+
+function getNegToday() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(NEG_KEY)) || {};
+    // Reset if not today
+    if (raw.date !== new Date().toDateString()) return {};
+    return raw.counts || {};
+  } catch { return {}; }
+}
+function saveNegToday(counts) {
+  localStorage.setItem(NEG_KEY, JSON.stringify({ date: new Date().toDateString(), counts }));
+}
+
+function getRank(xp) {
+  let rank = RANKS[0];
+  for (const r of RANKS) { if (xp >= r.min) rank = r; else break; }
+  return rank;
+}
+function getRankIndex(xp) {
+  let idx = 0;
+  for (let i = 0; i < RANKS.length; i++) { if (xp >= RANKS[i].min) idx = i; else break; }
+  return idx;
+}
+function xpToNextRank(xp) {
+  const idx = getRankIndex(xp);
+  if (idx >= RANKS.length - 1) return null;
+  return RANKS[idx + 1].min - xp;
+}
+function rankProgress(xp) {
+  const idx = getRankIndex(xp);
+  if (idx >= RANKS.length - 1) return 100;
+  const base = RANKS[idx].min;
+  const next = RANKS[idx + 1].min;
+  return Math.round(((xp - base) / (next - base)) * 100);
+}
+
+function addXP(amount) {
+  const g = loadGame();
+  const prev = g.xp || 0;
+  g.xp = Math.max(0, prev + amount);
+  g.hp = Math.min(HP_MAX, (g.hp ?? HP_MAX) + (amount > 0 ? HP_RITUAL_TASK : 0));
+  // Rank demotion on big XP loss
+  const prevRankIdx = getRankIndex(prev);
+  const newRankIdx  = getRankIndex(g.xp);
+  saveGame(g);
+  if (newRankIdx < prevRankIdx) {
+    const newRank = RANKS[newRankIdx];
+    setTimeout(() => showToast(`Rank dropped to ${newRank.emoji} ${newRank.name}`, 3000), 500);
+  } else if (newRankIdx > prevRankIdx) {
+    const newRank = RANKS[newRankIdx];
+    setTimeout(() => {
+      showToast(`Rank up! ${newRank.emoji} ${newRank.name}!`, 3000);
+      burstParticles(innerWidth/2, innerHeight*.4, 50, 'rainbow');
+    }, 400);
+  }
+  return g;
+}
+
+function addHP(amount) {
+  const g = loadGame();
+  g.hp = Math.min(HP_MAX, Math.max(0, (g.hp ?? HP_MAX) + amount));
+  saveGame(g);
+  return g;
+}
+
+// Daily regen — call once per day
+function dailyRegen() {
+  const g = loadGame();
+  const today = new Date().toDateString();
+  if (g.lastRegenDate === today) return;
+  g.lastRegenDate = today;
+  g.hp = Math.min(HP_MAX, (g.hp ?? HP_MAX) + HP_REGEN_DAILY);
+  saveGame(g);
+}
+
+// Log a negative item
+function logNegativeItem(id) {
+  const item   = NEGATIVE_ITEMS.find(n => n.id === id);
+  if (!item) return;
+  const counts = getNegToday();
+  counts[id]   = (counts[id] || 0) + 1;
+  saveNegToday(counts);
+
+  const overLimit = item.limit === 0 ? 1 : Math.max(0, counts[id] - item.limit);
+  if (overLimit > 0) {
+    // Harmful — apply penalty
+    const g = addHP(-item.hpCost);
+    addXP(XP_NEGATIVE);
+    const hp = Math.round(g.hp);
+    showToast(`${item.icon} ${item.name} — -${item.hpCost} HP (${hp} left)`, 2800);
+    renderGameCard();
+    if (hp < 30) setTimeout(() => showToast('⚠️ HP low — take care of yourself', 2800), 3000);
+  } else {
+    // Within limit — just log, no penalty
+    const remaining = item.limit - counts[id];
+    showToast(`${item.icon} ${item.name} logged · ${remaining} left today`, 2200);
+    renderGameCard();
+  }
+}
+
 async function loadData(forceRefresh = false) {
 
   document.getElementById('home-content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
@@ -948,11 +1137,219 @@ function parseTaskRows(rows) {
 
 
 // ─── HOME ─────────────────────────────────────────
+function openChoresView() {
+  renderChoresView();
+  document.getElementById('view-chores').style.display = 'flex';
+}
+function closeChoresView() {
+  document.getElementById('view-chores').style.display = 'none';
+}
+
 function showHome() {
   document.getElementById('view-home').classList.add('active');
   document.getElementById('view-tasks').classList.remove('active');
   currentCategory = null;
   renderHome();
+}
+
+
+
+// ─── Load chores from chores sheet ───────────────────
+function loadChores() {
+  const range = encodeURIComponent(`${CHORES_CONFIG.SHEET_NAME}!A${CHORES_CONFIG.DATA_START_ROW}:I`);
+  const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${range}?key=${CHORES_CONFIG.API_KEY}`;
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { console.warn('Chores:', data.error.message); return; }
+      const rows = data.values || [];
+      // Parse room legend
+      choreRoomLegend = {};
+      rows.forEach(row => {
+        const cell = (row[8] || '').trim();
+        if (!cell) return;
+        const m = cell.match(/^(\w+)\s*=\s*(.+)/);
+        if (m) choreRoomLegend[m[1].toLowerCase()] = m[2].trim();
+      });
+      // Parse chores — filter out one-offs (maxDays=0)
+      allChores = rows.filter(r => r[0] && String(r[2] || '').trim() !== '0').map((row, i) => {
+        const name     = row[0] || '';
+        const minDays  = parseFloat(row[1]) || 1;
+        const maxDays  = parseFloat(row[2]) || 7;
+        const lastDone = parseDate(row[3] || '');
+        const room     = (row[4] || '').trim().toLowerCase();
+        const who      = (row[5] || '').trim();
+        const duration = parseInt(row[6]) || 0;
+        const days     = (Date.now() - (lastDone?.getTime() || 0)) / 86400000;
+        const ratio    = lastDone ? Math.min(days / maxDays, 1.8) : 1.5;
+        return { name, minDays, maxDays, lastDone, room, who, duration, days, ratio, sheetRow: CHORES_CONFIG.DATA_START_ROW + i, _isChore: true };
+      }).sort((a,b) => b.ratio - a.ratio);
+      renderHome(); // re-render to show chores tile
+    })
+    .catch(e => console.warn('Chores load failed:', e));
+}
+
+function choreRoomName(code) {
+  if (!code) return '';
+  return code.toLowerCase().split(' ').map(c => choreRoomLegend[c] || c).filter(Boolean).join(', ');
+}
+
+// Mark chore done — writes to chores sheet
+async function markChoreDone(sheetRow, cardEl) {
+  const chore = allChores.find(c => c.sheetRow === sheetRow);
+  if (!chore) return;
+  const now   = new Date();
+  const value = formatDate(now);
+  chore.lastDone = now; chore.days = 0; chore.ratio = 0;
+
+  if (cardEl) {
+    cardEl.style.opacity = '.5';
+    cardEl.style.pointerEvents = 'none';
+  }
+
+  // XP + HP
+  const g = addXP(XP_CHORE);
+  addHP(HP_CHORE);
+  showToast(`🏠 Done +${XP_CHORE} XP`, 1800);
+  renderGameCard();
+
+  const doWrite = async () => {
+    try {
+      const colD = `${CHORES_CONFIG.SHEET_NAME}!D${sheetRow}`;
+      const colF = `${CHORES_CONFIG.SHEET_NAME}!F${sheetRow}`;
+      const urlD = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${encodeURIComponent(colD)}?valueInputOption=RAW`;
+      const urlF = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${encodeURIComponent(colF)}?valueInputOption=RAW`;
+      await fetch(urlD, { method:'PUT', headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'}, body:JSON.stringify({values:[[value]]}) });
+      await fetch(urlF, { method:'PUT', headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'}, body:JSON.stringify({values:[[CHORES_CONFIG.YOUR_NAME]]}) });
+      if (cardEl) { cardEl.remove(); checkChoresClear(); }
+    } catch(e) { showToast('Chore save failed: ' + e.message); if(cardEl){cardEl.style.opacity='';cardEl.style.pointerEvents='';} }
+  };
+  if (accessToken) doWrite(); else { pendingWrite = { customCallback: doWrite }; initOAuth(); }
+}
+
+function checkChoresClear() {
+  const due = allChores.filter(c => c.ratio >= 0.65);
+  if (!due.length) {
+    burstParticles(innerWidth/2, innerHeight*.4, 50, 'rainbow');
+    showToast('All chores clear! 🏠✨', 2500);
+  }
+}
+
+function renderChoresView() {
+  const el = document.getElementById('chores-view-content');
+  if (!el) return;
+  const due = allChores.filter(c => !isSnoozed(c.sheetRow) && c.ratio >= 0.35);
+  if (!due.length) {
+    el.innerHTML = '<div class="empty-state"><span class="e-icon">🏠</span>All clear — no chores due.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  due.forEach(c => {
+    const color = c.ratio >= 1 ? '#a03030' : c.ratio >= 0.85 ? '#c97c3c' : c.ratio >= 0.65 ? '#c9a84c' : '#5a8a5e';
+    const rLabel = choreRoomName(c.room);
+    const card = document.createElement('div');
+    card.style.cssText = 'background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;margin-bottom:10px;';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:500">${c.name}</div>
+          ${rLabel ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">📍 ${rLabel}</div>` : ''}
+          ${c.duration ? `<div style="font-size:11px;color:var(--muted)">⏱ ${c.duration} min</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;font-weight:600;color:${color}">${c.ratio>=1?'Overdue':c.ratio>=0.85?'Due soon':''}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${c.lastDone ? relativeTime(c.lastDone) : 'Never done'}</div>
+        </div>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(c.ratio*100,100)}%;background:${color};border-radius:2px"></div>
+      </div>
+      <button onclick="markChoreDone(${c.sheetRow},this.closest('[style]'))" style="margin-top:10px;width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;color:#f0e8d8;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">✓ Done +${XP_CHORE} XP</button>`;
+    el.appendChild(card);
+  });
+}
+
+// ─── Render game card ────────────────────────────────
+function renderGameCard() {
+  const el = document.getElementById('game-card');
+  if (!el) return;
+  const g    = loadGame();
+  const xp   = g.xp || 0;
+  const hp   = Math.round(g.hp ?? HP_MAX);
+  const rank = getRank(xp);
+  const prog = rankProgress(xp);
+  const toNext = xpToNextRank(xp);
+  const negCounts = getNegToday();
+
+  const hpColor = hp > 60 ? '#5a8a5e' : hp > 30 ? '#c9a84c' : '#a03030';
+  const hpPct   = hp;
+
+  // Today's negative items logged
+  const negLogged = NEGATIVE_ITEMS.filter(n => negCounts[n.id] > 0);
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="font-size:36px;line-height:1">${rank.emoji}</div>
+      <div style="flex:1">
+        <div style="font-size:17px;font-weight:700;color:${rank.color};font-family:'Playfair Display',serif">${rank.name}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:1px">${xp} XP${toNext ? ` · ${toNext} to next rank` : ' · Max rank'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:700;color:${hpColor}">${hp}</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:.5px">HP</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px">
+        <span>Rank progress</span><span>${prog}%</span>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${prog}%;background:${rank.color};border-radius:4px;transition:width 1s ease"></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px">
+        <span>Health</span><span>${hp}/100</span>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${hpPct}%;background:${hpColor};border-radius:4px;transition:width 1s ease"></div>
+      </div>
+    </div>
+
+    <button onclick="openNegativeSheet()" style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between">
+      <span>${negLogged.length ? negLogged.map(n => n.icon).join(' ') + ' logged today' : '+ Log a negative item'}</span>
+      <span style="opacity:.5">›</span>
+    </button>
+  `;
+}
+
+// ─── Negative items sheet ────────────────────────────
+function openNegativeSheet() {
+  const el = document.getElementById('neg-sheet');
+  if (!el) return;
+  const counts = getNegToday();
+  el.innerHTML = NEGATIVE_ITEMS.map(n => {
+    const count = counts[n.id] || 0;
+    const over  = n.limit === 0 ? count : Math.max(0, count - n.limit);
+    const limitTxt = n.limit > 0 ? `Limit: ${n.limit}/day` : 'Always harmful';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+        <div style="font-size:24px;flex-shrink:0">${n.icon}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600">${n.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${n.desc} · ${limitTxt}</div>
+          ${count > 0 ? `<div style="font-size:11px;color:${over > 0 ? '#a03030':'#5a8a5e'};margin-top:2px">${count} today${over > 0 ? ` · ${over} over limit` : ''}</div>` : ''}
+        </div>
+        <button onclick="logNegativeItem('${n.id}');openNegativeSheet()" style="background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;color:#f0e8d8;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">+1</button>
+      </div>`;
+  }).join('');
+  document.getElementById('neg-overlay').style.display = 'flex';
+}
+
+function closeNegativeSheet() {
+  document.getElementById('neg-overlay').style.display = 'none';
 }
 
 function renderHome() {
@@ -983,6 +1380,9 @@ function renderHome() {
 
   let html = '';
 
+  // ── Game card (XP + HP + Rank) ──
+  html += '<div id="game-card" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:16px"></div>';
+
   // ── Urgent strip ──
   if (urgentTasks.length > 0) {
     html += '<div class="section-label">Needs attention</div>';
@@ -995,6 +1395,21 @@ function renderHome() {
   } else {
     html += '<div class="section-label" style="margin-top:16px">Categories</div>';
     html += '<div class="category-grid" id="cat-grid">';
+    // ── Chores tile ──────────────────────────────────
+    const choresDue = allChores.filter(c => c.ratio >= 0.65);
+    const choresOver= allChores.filter(c => c.ratio >= 1).length;
+    const choreColor= choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
+    html += `<div class="cat-card" onclick="openChoresView()" style="border-color:${choreColor}20;background:${choreColor}08">
+      <div class="cat-top">
+        <span class="cat-emoji">🏠</span>
+        <button class="cat-tap-btn" onclick="event.stopPropagation();openChoresView()">›</button>
+      </div>
+      <div class="cat-name">Chores</div>
+      <div class="cat-meta">${choresDue.length} due · ${choresOver} overdue</div>
+      <div class="cat-urgency-bar" style="background:${choreColor}20">
+        <div class="cat-urgency-fill" style="width:${Math.min((choresOver/Math.max(allChores.length,1))*200,100)}%;background:${choreColor}"></div>
+      </div>
+    </div>`;
     sortedCats.forEach(cat => {
       const catTasks = allTasks.filter(t => t.cats.includes(cat.code));
       const ratios   = catTasks.map(t => urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)));
@@ -1350,6 +1765,9 @@ function attachHomeSwipe(card, bgDone, bgSnooze, sheetRow) {
     if (dx <= -THR) {
       card.style.transform = 'translateX(-110%)'; card.style.opacity = '0';
       if (navigator.vibrate) navigator.vibrate(40);
+      addXP(XP_RITUAL_TASK);
+      addHP(HP_RITUAL_TASK);
+      setTimeout(renderGameCard, 200);
       markDoneHome(sheetRow, null);
       card.style.animation = 'cardSnap .35s ease forwards';
       setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
@@ -1406,6 +1824,10 @@ function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
       card.style.transform = 'translateX(-110%)';
       card.style.opacity = '0';
       if (navigator.vibrate) navigator.vibrate(40);
+      // XP + HP for completing a ritual task
+      addXP(XP_RITUAL_TASK);
+      addHP(HP_RITUAL_TASK);
+      setTimeout(renderGameCard, 200);
       markDoneTask(sheetRow, null);
       card.style.animation = 'cardSnap .35s ease forwards';
       setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
@@ -1846,7 +2268,12 @@ function beginRitual() {
   burstParticles(innerWidth/2, innerHeight*0.55, 45);
   const ls = document.getElementById('landing-screen');
   ls.classList.add('hide');
-  setTimeout(() => { ls.style.display = 'none'; loadData(); }, 400);
+  setTimeout(() => {
+    ls.style.display = 'none';
+    // Trigger OAuth immediately so token is ready before first write
+    if (!accessToken) initOAuth();
+    loadData();
+  }, 400);
 }
 
 function showHowTo() {
@@ -2037,6 +2464,8 @@ function renderRhythmDots(catCode) {
 
 
 
+
+
 </script>
 </body>
-  </html>
+</html>
