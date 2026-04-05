@@ -753,6 +753,7 @@
 
 
 
+
 /* ═══════════════════════════════════════════════════
    CONFIGURATION
    ═══════════════════════════════════════════════════
@@ -1226,6 +1227,11 @@ function showHome() {
 
 // ─── Load chores from chores sheet ───────────────────
 function loadChores() {
+  // Skip if chores sheet not configured
+  if (CHORES_CONFIG.SHEET_ID.includes('YOUR_') || CHORES_CONFIG.API_KEY.includes('YOUR_')) {
+    console.info('Chores: configure CHORES_CONFIG to enable');
+    return;
+  }
   const range = encodeURIComponent(`${CHORES_CONFIG.SHEET_NAME}!A${CHORES_CONFIG.DATA_START_ROW}:I`);
   const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_CONFIG.SHEET_ID}/values/${range}?key=${CHORES_CONFIG.API_KEY}`;
   fetch(url)
@@ -1254,9 +1260,24 @@ function loadChores() {
         const ratio    = lastDone ? Math.min(days / maxDays, 1.8) : 1.5;
         return { name, minDays, maxDays, lastDone, room, who, duration, days, ratio, sheetRow: CHORES_CONFIG.DATA_START_ROW + i, _isChore: true };
       }).sort((a,b) => b.ratio - a.ratio);
-      renderHome(); // re-render to show chores tile
+      updateChoresTile(); // update just the chores tile
     })
     .catch(e => console.warn('Chores load failed:', e));
+}
+
+function updateChoresTile() {
+  // Just re-render the standalone chores card without touching allTasks
+  const el = document.getElementById('chores-tile-card');
+  if (!el) return; // tile not rendered yet — renderHome will handle it on next call
+  const choresDue  = allChores.filter(c => c.ratio >= 0.65);
+  const choresOver = allChores.filter(c => c.ratio >= 1).length;
+  const choreColor = choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
+  const choreLabel = choresOver > 0 ? `${choresOver} overdue` : choresDue.length > 0 ? `${choresDue.length} due soon` : 'All clear';
+  const icon = choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓';
+  el.style.borderColor = choreColor + '30';
+  el.querySelector('.chores-tile-label').textContent = choreLabel + ' · tap to manage';
+  el.querySelector('.chores-tile-icon').textContent = icon;
+  el.querySelector('.chores-tile-icon').style.color = choreColor;
 }
 
 function choreRoomName(code) {
@@ -1469,13 +1490,13 @@ function renderHome() {
   const choresOver = allChores.filter(c => c.ratio >= 1).length;
   const choreColor = choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
   const choreLabel = choresOver > 0 ? `${choresOver} overdue` : choresDue.length > 0 ? `${choresDue.length} due soon` : 'All clear';
-  html += `<div onclick="openChoresView()" style="background:rgba(255,255,255,.05);border:1.5px solid ${choreColor}30;border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
+  html += `<div id="chores-tile-card" onclick="openChoresView()" style="background:rgba(255,255,255,.05);border:1.5px solid ${choreColor}30;border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
     <span style="font-size:26px">🏠</span>
     <div style="flex:1">
       <div style="font-size:15px;font-weight:600;font-family:'Playfair Display',serif">Chores</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:1px">${choreLabel} · tap to manage</div>
+      <div class="chores-tile-label" style="font-size:11px;color:var(--muted);margin-top:1px">${choreLabel} · tap to manage</div>
     </div>
-    <div style="font-size:11px;font-weight:700;color:${choreColor};flex-shrink:0">${choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓'}</div>
+    <div class="chores-tile-icon" style="font-size:11px;font-weight:700;color:${choreColor};flex-shrink:0">${choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓'}</div>
   </div>`;
 
   html += '<div class="category-grid" id="cat-grid">';
@@ -2493,6 +2514,7 @@ function renderRhythmDots(catCode) {
     return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
   }).join('');
 }
+
 
 
 
