@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -769,74 +767,34 @@
 
 <script>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ═══════════════════════════════════════════════════
-   CONFIGURATION
-   ═══════════════════════════════════════════════════
-   Sheet layout:
-     A = Task name
-     B = Min days
-     C = Max days
-     D = Last done (written by app)
-     E = Category codes, space-separated  e.g. "self mind"
-     I = Category legend  e.g. "self = Self Care 🪥"
-═══════════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════════════════
-   RITUAL SHEET — your personal ritual / self-care tracking sheet
-   ─────────────────────────────────────────────────────────
-   SHEET_ID  → open your ritual Google Sheet, copy the ID from:
-               docs.google.com/spreadsheets/d/[THIS_PART]/edit
-   API_KEY   → Google Cloud Console → APIs & Services → Credentials
-               → API Keys. Enable Google Sheets API on it.
-   ─────────────────────────────────────────────────────────
-   Sheet layout:
-     A = Task name
-     B = Min days (earliest to repeat)
-     C = Max days (when it becomes due)
-     D = Last done (written by app)
-     E = Category codes, space-separated e.g. "self mind"
-     F = "1" if one-off task (archived to Sheet2 on done)
-     I = Category legend e.g. "self = Self Care 🪥"
-   ═══════════════════════════════════════════════════════════ */
+// ─── Configuration ────────────────────────────────────────────────────────
+// IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
+// The ritual sheet has category codes in col E and a legend in col I
+// e.g.  self = Self Care 🪥
 const CONFIG = {
-  SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',   // ← paste ritual sheet ID here
+  SHEET_ID:      '16nGtOxBWpYW8_go2DzqBh_IXAiciwlEzDzO8N2VirvQ',  // ← your RITUAL Google Sheet ID
   SHEET_NAME:    'Sheet1',
-  API_KEY:       'AIzaSyDb065U8j5l8LhKNzcz3onSoDxknA4d7rU',            // ← your Google Cloud API key
-  COL_NAME:      1,
-  COL_MIN:       2,
-  COL_MAX:       3,
-  COL_LAST_DONE: 4,
-  COL_CATS:      5,   // E  — space-separated category codes
-  COL_ONEOFF:    6,   // F  — "1" if one-off task
-  COL_LEGEND:    9,   // I  — "code = Name Emoji"
-  ARCHIVE_SHEET: 'Sheet2', // tab for completed one-offs
+  API_KEY:       'AIzaSyDx50f2EyVKs6YEStDEDugEowN7yplhrLE',           // ← same API key used everywhere
+  COL_NAME:      1,  // A
+  COL_MIN:       2,  // B — min days (earliest to repeat)
+  COL_MAX:       3,  // C — max days (when due)
+  COL_LAST_DONE: 4,  // D — written by app
+  COL_CATS:      5,  // E — space-separated category codes
+  COL_ONEOFF:    6,  // F — "1" if one-off task
+  COL_LEGEND:    9,  // I — "code = Name Emoji" entries
+  ARCHIVE_SHEET: 'Sheet2',
   DATA_START_ROW: 2,
 };
-const OAUTH_CLIENT_ID = '321304865512-53n0nqgmg7il2i7mjinni0efd025lpgi.apps.googleusercontent.com';
-/* ↑ Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs
-   Application type: Web application
-   Authorised JavaScript origins: https://tonyviking.github.io
-   Same client ID used in index.html (chores app) — one ID covers both sheets */
+// OAuth — one client ID covers both ritual and chores sheets
+const OAUTH_CLIENT_ID = '910424254552-q29kncg9tni3a7nqcvqbd3kjm1kuche0.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
-// ─── State ────────────────────────────────────────
+// Chores app (for house health card link)
+const CHORES_APP_URL   = 'https://tonyviking.github.io/kachores'; // ← your chores app URL
+const CHORES_SHEET_ID  = '19-CYQBlORzRx_no9o9Hk31kuQyvWYGCGhRKnJ6LZaSE';             // ← your CHORES sheet ID
+// Note: CHORES_SHEET_ID is different from CONFIG.SHEET_ID above
+
+// ─── State ────────────────────────────────────────────────────────────────
 let tokenClient     = null;
 let accessToken     = null;
 let tokenExpiry     = 0;
@@ -847,158 +805,48 @@ let currentCategory = null;
 let filterDays      = 4;
 const catFilters    = {};
 
-// ─── Legend cache ─────────────────────────────────
-// Legend (col I) almost never changes so we cache it in localStorage.
-// It is only re-fetched when the user explicitly hits Refresh or the
-// cache is older than LEGEND_TTL_MS.
+// ─── Constants ────────────────────────────────────────────────────────────
 const LEGEND_KEY    = 'ritual_legend_v1';
-const LEGEND_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const LEGEND_TTL_MS = 24 * 60 * 60 * 1000;
+const SNOOZE_KEY    = 'ritual_snoozed_v1';
+const STREAK_KEY    = 'ritual_streak_v1';
+const GAME_KEY      = 'ritual_game_v1';
+const NEG_KEY       = 'ritual_neg_v1';
 
-function saveLegendCache(cats) {
-  try {
-    localStorage.setItem(LEGEND_KEY, JSON.stringify({ ts: Date.now(), cats }));
-  } catch(e) {}
-}
+const XP_RITUAL_TASK = 20;
+const XP_NEGATIVE    = -5;
+const HP_MAX         = 100;
+const HP_REGEN_DAILY = 5;
+const HP_RITUAL_TASK = 3;
+const HP_CHORE       = 2;
 
-function loadLegendCache() {
-  try {
-    const raw = localStorage.getItem(LEGEND_KEY);
-    if (!raw) return null;
-    const { ts, cats } = JSON.parse(raw);
-    if (Date.now() - ts > LEGEND_TTL_MS) return null;
-    return cats;
-  } catch(e) { return null; }
-}
+const RANKS = [
+  { min:0,    name:'Stone Dweller', emoji:'🪨', color:'#6a5a4a' },
+  { min:50,   name:'Wanderer',      emoji:'🌿', color:'#5a8a5e' },
+  { min:150,  name:'Squire',        emoji:'⚔️',  color:'#6a7aaa' },
+  { min:350,  name:'Knight',        emoji:'🛡️',  color:'#5a6a9a' },
+  { min:700,  name:'Champion',      emoji:'🌟', color:'#c9a84c' },
+  { min:1200, name:'Warrior',       emoji:'🔥', color:'#c97c3c' },
+  { min:2000, name:'Hero',          emoji:'💎', color:'#6a9aca' },
+  { min:3200, name:'Legend',        emoji:'🦅', color:'#9a6aca' },
+  { min:5000, name:'Sovereign',     emoji:'👑', color:'#c9a830' },
+  { min:8000, name:'Mythic',        emoji:'🐉', color:'#a03030' },
+];
 
-function bustLegendCache() {
-  try { localStorage.removeItem(LEGEND_KEY); } catch(e) {}
-}
+const NEGATIVE_ITEMS = [
+  { id:'alcohol',   name:'Alcohol',         icon:'🍺', limit:2, hpCost:8,  desc:'1–2 is fine, each extra hits hard' },
+  { id:'junk',      name:'Junk food',       icon:'🍔', limit:1, hpCost:5,  desc:'One treat is fine' },
+  { id:'latenight', name:'Late night',      icon:'🌙', limit:0, hpCost:10, desc:'Sleep matters' },
+  { id:'workout',   name:'Skipped workout', icon:'😴', limit:0, hpCost:6,  desc:'Movement keeps you going' },
+  { id:'smoking',   name:'Smoking',         icon:'🚬', limit:0, hpCost:15, desc:'Always harmful' },
+  { id:'binge',     name:'Binge drinking',  icon:'🥃', limit:0, hpCost:25, desc:'6+ drinks — serious hit' },
+  { id:'skipmeal',  name:'Skipped meals',   icon:'🍽️', limit:0, hpCost:8,  desc:'Fuelling matters' },
+  { id:'stress',    name:'High stress day', icon:'😤', limit:0, hpCost:5,  desc:'Log it, acknowledge it' },
+];
 
-// ─── Helpers ──────────────────────────────────────
-const colLetter = n => String.fromCharCode(64 + n);
-
-function formatDate(d) {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function parseDate(s) {
-  if (!s) return null;
-  const d = new Date(s);
-  return isNaN(d) ? null : d;
-}
-
-function daysSince(date) {
-  if (!date) return Infinity;
-  return (Date.now() - date.getTime()) / 86400000;
-}
-
-function urgencyRatio(min, max, days) {
-  if (!isFinite(days)) return 1.5;
-  if (max <= 0) return 0;
-  return days / max;
-}
-
-function urgencyLevel(ratio) {
-  if (ratio <= 0.35) return 'fresh';
-  if (ratio <= 0.65) return 'ok';
-  if (ratio <= 0.85) return 'soon';
-  if (ratio <= 1.0)  return 'due';
-  return 'over';
-}
-
-function urgencyColor(ratio) {
-  return {fresh:'var(--c-fresh)',ok:'var(--c-ok)',soon:'var(--c-soon)',due:'var(--c-due)',over:'var(--c-over)'}[urgencyLevel(ratio)];
-}
-
-function relativeTime(date) {
-  if (!date) return 'Never done';
-  const d   = daysSince(date);
-  const now = new Date();
-  const hr  = now.getHours();
-
-  if (d < 0.04) return 'Done just now';
-
-  // Same calendar day
-  if (d < 1) {
-    const doneHr = new Date(date).getHours();
-    if (doneHr < 12 && hr >= 12) return 'Done this morning';
-    return 'Done today';
-  }
-
-  // Previous calendar day
-  if (d < 2) {
-    const doneHr = new Date(date).getHours();
-    if (doneHr >= 18) return 'Done last night';
-    if (doneHr >= 12) return 'Done yesterday afternoon';
-    return 'Done yesterday';
-  }
-
-  const days = Math.floor(d);
-  return `Done ${days} day${days !== 1 ? 's' : ''} ago`;
-}
-
-function isDoneToday(date) {
-  if (!date) return false;
-  const now = new Date();
-  const d   = new Date(date);
-  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-}
-
-function showToast(msg, dur = 2200) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), dur);
-}
-
-function catName(code)  { const c = categories.find(c => c.code === code); return c ? c.name  : code; }
-function catEmoji(code) { const c = categories.find(c => c.code === code); return c ? c.emoji : ''; }
-
-function parseLegend(rows) {
-  const cats = [];
-  rows.forEach(row => {
-    const cell = (row[CONFIG.COL_LEGEND - 1] || '').trim();
-    if (!cell) return;
-    const m = cell.match(/^([^\s=]+)\s*=\s*(.+)$/);
-    if (!m) return;
-    const code = m[1].toLowerCase();
-    const rest = m[2].trim();
-    const em   = rest.match(/^(.*?)\s*(\p{Emoji}+)\s*$/u);
-    let name, emoji;
-    if (em) { name = em[1].trim() || em[2]; emoji = em[2]; }
-    else     { name = rest; emoji = '📌'; }
-    if (!cats.find(c => c.code === code)) cats.push({ code, name, emoji });
-  });
-  return cats;
-}
-
-// ─── Particle engine ──────────────────────────────
+// ─── Particle engine ──────────────────────────────────────────────────────
 const _cvs = () => document.getElementById('particle-canvas');
 let _raf = null, _pts = [], _flash = 0;
-
-function burstParticles(ox, oy, count = 35, modeOverride) {
-  const c = _cvs(); if (!c) return;
-  c.width = innerWidth; c.height = innerHeight;
-  c.style.opacity = '1';
-  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
-  _pts = []; _flash = 0.6;
-
-  for (let i = 0; i < count; i++) {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = 3 + Math.random() * 7;
-    const sz  = 3 + Math.random() * 9;
-    const lf  = 0.8 + Math.random() * 0.8;
-    const hue = Math.floor(Math.random() * 360);
-    const color = `hsl(${hue},100%,65%)`;
-    const shape = Math.random() > .5 ? 'circle' : 'star';
-    _pts.push({ x:ox, y:oy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-2,
-      sz, color, lf, ml:lf, rot:Math.random()*Math.PI*2,
-      rs:(Math.random()-.5)*.2, grav:.14, drag:.97, shape });
-  }
-  _animPts();
-}
 
 function _star(ctx, x, y, s, rot) {
   ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.beginPath();
@@ -1023,1227 +871,120 @@ function _animPts() {
   for (const p of _pts) {
     const t = p.lf/p.ml, s = p.sz*Math.sqrt(t);
     ctx.globalAlpha = t<.3?(t/.3)*.9:t*.9;
-    ctx.fillStyle = p.color; ctx.shadowBlur = 0;
+    ctx.fillStyle = p.color;
     if (p.shape==='star') _star(ctx,p.x,p.y,s,p.rot);
     else { ctx.beginPath(); ctx.arc(p.x,p.y,s,0,Math.PI*2); ctx.fill(); }
-    p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=p.drag; p.vy*=p.drag;
-    p.rot+=p.rs; p.lf-=.022;
+    p.x+=p.vx; p.y+=p.vy; p.vy+=.12; p.vx*=.97; p.rot+=.08; p.lf-=1/60;
   }
-  ctx.globalAlpha=1;
-  if (_pts.length>0||_flash>.01) _raf=requestAnimationFrame(_animPts);
+  ctx.globalAlpha = 1;
+  if (_pts.length || _flash>.01) _raf = requestAnimationFrame(_animPts);
   else { c.style.opacity='0'; _raf=null; }
 }
 
-
-// ─── Gamification constants ──────────────────────────
-const XP_RITUAL_TASK = 20;
-const XP_CHORE       = 15;
-const XP_NEGATIVE    = -5;  // per excess hit
-const HP_MAX         = 100;
-const HP_REGEN_DAILY = 5;   // passive daily regen
-const HP_RITUAL_TASK = 3;
-const HP_CHORE       = 2;
-
-const RANKS = [
-  { min:0,    name:'Stone Dweller',  emoji:'🪨', color:'#6a5a4a' },
-  { min:50,   name:'Wanderer',       emoji:'🌿', color:'#5a8a5e' },
-  { min:150,  name:'Squire',         emoji:'⚔️',  color:'#6a7aaa' },
-  { min:350,  name:'Knight',         emoji:'🛡️',  color:'#5a6a9a' },
-  { min:700,  name:'Champion',       emoji:'🌟', color:'#c9a84c' },
-  { min:1200, name:'Warrior',        emoji:'🔥', color:'#c97c3c' },
-  { min:2000, name:'Hero',           emoji:'💎', color:'#6a9aca' },
-  { min:3200, name:'Legend',         emoji:'🦅', color:'#9a6aca' },
-  { min:5000, name:'Sovereign',      emoji:'👑', color:'#c9a830' },
-  { min:8000, name:'Mythic',         emoji:'🐉', color:'#a03030' },
-];
-
-// Negative items: { id, name, icon, limit(per day, 0=always bad), hpCost, xpCost, desc }
-const NEGATIVE_ITEMS = [
-  { id:'alcohol',  name:'Alcohol',        icon:'🍺', limit:2, hpCost:8,  xpCost:5,  desc:'1–2 is fine, each extra hits hard' },
-  { id:'junk',     name:'Junk food',      icon:'🍔', limit:1, hpCost:5,  xpCost:3,  desc:'One treat is fine' },
-  { id:'latenight',name:'Late night',     icon:'🌙', limit:0, hpCost:10, xpCost:5,  desc:'Sleep matters' },
-  { id:'nap',      name:'Skipped workout',icon:'😴', limit:0, hpCost:6,  xpCost:4,  desc:'Movement keeps you going' },
-  { id:'smoking',  name:'Smoking',        icon:'🚬', limit:0, hpCost:15, xpCost:10, desc:'Always harmful' },
-  { id:'binge',    name:'Binge drinking', icon:'🥃', limit:0, hpCost:25, xpCost:15, desc:'6+ drinks — serious hit' },
-  { id:'skip_meal',name:'Skipped meals',  icon:'🍽️', limit:0, hpCost:8,  xpCost:4,  desc:'Fuelling matters' },
-  { id:'stress',   name:'High stress day',icon:'😤', limit:0, hpCost:5,  xpCost:2,  desc:'Log it, acknowledge it' },
-];
-
-const GAME_KEY = 'ritual_game_v1';
-const NEG_KEY  = 'ritual_neg_v1';  // today's negative item counts
-
-function loadGame() {
-  try { return JSON.parse(localStorage.getItem(GAME_KEY)) || {}; } catch { return {}; }
-}
-function saveGame(g) { localStorage.setItem(GAME_KEY, JSON.stringify(g)); }
-
-function getNegToday() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(NEG_KEY)) || {};
-    // Reset if not today
-    if (raw.date !== new Date().toDateString()) return {};
-    return raw.counts || {};
-  } catch { return {}; }
-}
-function saveNegToday(counts) {
-  localStorage.setItem(NEG_KEY, JSON.stringify({ date: new Date().toDateString(), counts }));
-}
-
-function getRank(xp) {
-  let rank = RANKS[0];
-  for (const r of RANKS) { if (xp >= r.min) rank = r; else break; }
-  return rank;
-}
-function getRankIndex(xp) {
-  let idx = 0;
-  for (let i = 0; i < RANKS.length; i++) { if (xp >= RANKS[i].min) idx = i; else break; }
-  return idx;
-}
-function xpToNextRank(xp) {
-  const idx = getRankIndex(xp);
-  if (idx >= RANKS.length - 1) return null;
-  return RANKS[idx + 1].min - xp;
-}
-function rankProgress(xp) {
-  const idx = getRankIndex(xp);
-  if (idx >= RANKS.length - 1) return 100;
-  const base = RANKS[idx].min;
-  const next = RANKS[idx + 1].min;
-  return Math.round(((xp - base) / (next - base)) * 100);
-}
-
-function addXP(amount) {
-  const g = loadGame();
-  const prev = g.xp || 0;
-  g.xp = Math.max(0, prev + amount);
-  g.hp = Math.min(HP_MAX, (g.hp ?? HP_MAX) + (amount > 0 ? HP_RITUAL_TASK : 0));
-  // Rank demotion on big XP loss
-  const prevRankIdx = getRankIndex(prev);
-  const newRankIdx  = getRankIndex(g.xp);
-  saveGame(g);
-  if (newRankIdx < prevRankIdx) {
-    const newRank = RANKS[newRankIdx];
-    setTimeout(() => showToast(`Rank dropped to ${newRank.emoji} ${newRank.name}`, 3000), 500);
-  } else if (newRankIdx > prevRankIdx) {
-    const newRank = RANKS[newRankIdx];
-    setTimeout(() => {
-      showToast(`Rank up! ${newRank.emoji} ${newRank.name}!`, 3000);
-      burstParticles(innerWidth/2, innerHeight*.4, 50, 'rainbow');
-    }, 400);
-  }
-  return g;
-}
-
-function addHP(amount) {
-  const g = loadGame();
-  g.hp = Math.min(HP_MAX, Math.max(0, (g.hp ?? HP_MAX) + amount));
-  saveGame(g);
-  return g;
-}
-
-// Daily regen — call once per day
-function dailyRegen() {
-  const g = loadGame();
-  const today = new Date().toDateString();
-  if (g.lastRegenDate === today) return;
-  g.lastRegenDate = today;
-  g.hp = Math.min(HP_MAX, (g.hp ?? HP_MAX) + HP_REGEN_DAILY);
-  saveGame(g);
-}
-
-// Log a negative item
-function logNegativeItem(id) {
-  const item   = NEGATIVE_ITEMS.find(n => n.id === id);
-  if (!item) return;
-  const counts = getNegToday();
-  counts[id]   = (counts[id] || 0) + 1;
-  saveNegToday(counts);
-
-  const overLimit = item.limit === 0 ? 1 : Math.max(0, counts[id] - item.limit);
-  if (overLimit > 0) {
-    // Harmful — apply penalty
-    const g = addHP(-item.hpCost);
-    addXP(XP_NEGATIVE);
-    const hp = Math.round(g.hp);
-    showToast(`${item.icon} ${item.name} — -${item.hpCost} HP (${hp} left)`, 2800);
-    renderGameCard();
-    if (hp < 30) setTimeout(() => showToast('⚠️ HP low — take care of yourself', 2800), 3000);
-  } else {
-    // Within limit — just log, no penalty
-    const remaining = item.limit - counts[id];
-    showToast(`${item.icon} ${item.name} logged · ${remaining} left today`, 2200);
-    renderGameCard();
-  }
-}
-
-async function loadData(forceRefresh = false) {
-  // Purge any expired snooze entries
-  const _sn = getSnoozed();
-  let _changed = false;
-  for (const k of Object.keys(_sn)) { if (Date.now() > _sn[k]) { delete _sn[k]; _changed = true; } }
-  if (_changed) localStorage.setItem(SNOOZE_KEY, JSON.stringify(_sn));
-
-  document.getElementById('home-content').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
-
-  // Guard against unconfigured ritual sheet
-  if (CONFIG.SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) {
-    document.getElementById('home-content').innerHTML =
-      '<div class="error-msg" style="padding:32px 20px;text-align:center;color:var(--muted);line-height:1.8">' +
-      '<div style="font-size:32px;margin-bottom:12px">⚙️</div>' +
-      '<strong style="color:var(--ink);font-size:16px">Setup required</strong><br><br>' +
-      'Open <code>ritual.html</code> and fill in:<br>' +
-      '<code style="font-size:11px">CONFIG.SHEET_ID</code> — your ritual sheet ID<br>' +
-      '<code style="font-size:11px">CONFIG.API_KEY</code> — your Google API key<br>' +
-      '<code style="font-size:11px">OAUTH_CLIENT_ID</code> — your OAuth client ID' +
-      '</div>';
-    return;
-  }
-
-  if (forceRefresh) bustLegendCache();
-
-  const cachedLegend = loadLegendCache();
-
-  try {
-    if (cachedLegend) {
-      // ── Fast path: legend from cache, only fetch task data (cols A–E) ──
-      categories = cachedLegend;
-      const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A${CONFIG.DATA_START_ROW}:F`);
-      const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
-      const res   = await fetch(url);
-      const data  = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const rows = data.values || [];
-      allTasks = parseTaskRows(rows);
-    } else {
-      // ── Slow path: fetch everything including legend (cols A–I) ──
-      const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A${CONFIG.DATA_START_ROW}:I`);
-      const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
-      const res   = await fetch(url);
-      const data  = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const rows = data.values || [];
-      categories = parseLegend(rows);
-      saveLegendCache(categories);
-      allTasks = parseTaskRows(rows);
-    }
-
-    renderHome();
-    renderStreakBadge();
-    if (currentCategory) renderTasks();
-    checkWelcomeBack();
-    dailyRegen();
-    fetchHouseHealth();
-  } catch(e) {
-    document.getElementById('home-content').innerHTML =
-      `<div class="error-msg">⚠️ Couldn't load<br>${e.message}<br><br>Check Sheet ID, API key,<br>and that the sheet is public.</div>`;
-  }
-}
-
-function parseTaskRows(rows) {
-  return rows
-    .filter(r => r[CONFIG.COL_NAME - 1])
-    .map((row, i) => ({
-      name:     row[CONFIG.COL_NAME - 1] || '',
-      minDays:  parseFloat(row[CONFIG.COL_MIN - 1]) || 1,
-      maxDays:  parseFloat(row[CONFIG.COL_MAX - 1]) || 7,
-      lastDone: parseDate(row[CONFIG.COL_LAST_DONE - 1]),
-      cats:     (row[CONFIG.COL_CATS - 1] || '').toLowerCase().split(' ').filter(Boolean),
-      oneOff:   (row[CONFIG.COL_ONEOFF - 1] || '').trim() === '1',
-      sheetRow: CONFIG.DATA_START_ROW + i,
-    })).map(t => {
-      const days  = t.lastDone ? (Date.now() - t.lastDone.getTime()) / 86400000 : Infinity;
-      const ratio = isFinite(days) ? Math.min(days / t.maxDays, 1.8) : 1.5;
-      return { ...t, days, ratio };
-    });
-}
-
-
-
-
-
-function showHome() {
-  document.getElementById('view-home').classList.add('active');
-  document.getElementById('view-tasks').classList.remove('active');
-  currentCategory = null;
-  renderHome();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ─── Render game card ────────────────────────────────
-function renderGameCard() {
-  const el = document.getElementById('game-card');
-  if (!el) return;
-  const g    = loadGame();
-  const xp   = g.xp || 0;
-  const hp   = Math.round(g.hp ?? HP_MAX);
-  const rank = getRank(xp);
-  const prog = rankProgress(xp);
-  const toNext = xpToNextRank(xp);
-  const negCounts = getNegToday();
-
-  const hpColor = hp > 60 ? '#5a8a5e' : hp > 30 ? '#c9a84c' : '#a03030';
-  const hpPct   = hp;
-
-  // Today's negative items logged
-  const negLogged = NEGATIVE_ITEMS.filter(n => negCounts[n.id] > 0);
-
-  el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-      <div style="font-size:36px;line-height:1">${rank.emoji}</div>
-      <div style="flex:1">
-        <div style="font-size:17px;font-weight:700;color:${rank.color};font-family:'Playfair Display',serif">${rank.name}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:1px">${xp} XP${toNext ? ` · ${toNext} to next rank` : ' · Max rank'}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:20px;font-weight:700;color:${hpColor}">${hp}</div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:.5px">HP</div>
-      </div>
-    </div>
-
-    <div style="margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px">
-        <span>Rank progress</span><span>${prog}%</span>
-      </div>
-      <div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${prog}%;background:${rank.color};border-radius:4px;transition:width 1s ease"></div>
-      </div>
-    </div>
-
-    <div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px">
-        <span>Health</span><span>${hp}/100</span>
-      </div>
-      <div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${hpPct}%;background:${hpColor};border-radius:4px;transition:width 1s ease"></div>
-      </div>
-    </div>
-
-    <button onclick="openNegativeSheet()" style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between">
-      <span>${negLogged.length ? negLogged.map(n => n.icon).join(' ') + ' logged today' : '+ Log a negative item'}</span>
-      <span style="opacity:.5">›</span>
-    </button>
-  `;
-}
-
-// ─── Negative items sheet ────────────────────────────
-function openNegativeSheet() {
-  const el = document.getElementById('neg-sheet');
-  if (!el) return;
-  const counts = getNegToday();
-  el.innerHTML = NEGATIVE_ITEMS.map(n => {
-    const count = counts[n.id] || 0;
-    const over  = n.limit === 0 ? count : Math.max(0, count - n.limit);
-    const limitTxt = n.limit > 0 ? `Limit: ${n.limit}/day` : 'Always harmful';
-    return `
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)">
-        <div style="font-size:24px;flex-shrink:0">${n.icon}</div>
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:600">${n.name}</div>
-          <div style="font-size:11px;color:var(--muted)">${n.desc} · ${limitTxt}</div>
-          ${count > 0 ? `<div style="font-size:11px;color:${over > 0 ? '#a03030':'#5a8a5e'};margin-top:2px">${count} today${over > 0 ? ` · ${over} over limit` : ''}</div>` : ''}
-        </div>
-        <button onclick="logNegativeItem('${n.id}');openNegativeSheet()" style="background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;color:#f0e8d8;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">+1</button>
-      </div>`;
-  }).join('');
-  document.getElementById('neg-overlay').style.display = 'flex';
-}
-
-function closeNegativeSheet() {
-  document.getElementById('neg-overlay').style.display = 'none';
-}
-
-
-// ─── House health (read-only from chores sheet) ───────
-const CHORES_APP_URL = 'https://tonyviking.github.io/kachores'; // ← your chores app URL
-
-function openChoresApp() {
-  window.location.href = CHORES_APP_URL;
-}
-
-async function fetchHouseHealth() {
-  // Uses a separate read-only chores sheet config
-  const CHORES_SHEET_ID  = 'YOUR_CHORES_SHEET_ID_HERE'; // ← paste chores sheet ID (NOT the ritual sheet ID)
-  const CHORES_API_KEY   = CONFIG.API_KEY;               // ← same API key
-  const CHORES_START_ROW = 2;
-
-  if (CHORES_SHEET_ID.includes('YOUR_')) {
-    updateHouseHealthCard('Configure chores sheet ID · tap to open app', '🏠');
-    return;
-  }
-
-  try {
-    const range = encodeURIComponent(`Sheet1!C${CHORES_START_ROW}:D`);
-    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_SHEET_ID}/values/${range}?key=${CHORES_API_KEY}`;
-    const res   = await fetch(url);
-    const data  = await res.json();
-    if (data.error) { updateHouseHealthCard('Tap to open chores app', '🏠'); return; }
-
-    const rows    = data.values || [];
-    const now     = Date.now();
-    let overdue   = 0;
-    let dueSoon   = 0;
-
-    rows.forEach(row => {
-      const maxDays  = parseFloat(row[0]) || 7;
-      if (maxDays === 0) return; // one-off
-      const lastDone = parseDate(row[1] || '');
-      if (!lastDone) { overdue++; return; }
-      const days  = (now - lastDone.getTime()) / 86400000;
-      const ratio = days / maxDays;
-      if (ratio >= 1)    overdue++;
-      else if (ratio >= 0.75) dueSoon++;
-    });
-
-    const label = overdue > 0
-      ? `${overdue} overdue · ${dueSoon} due soon · tap to manage`
-      : dueSoon > 0
-      ? `${dueSoon} due soon · tap to manage`
-      : 'All clear · tap to open chores app';
-
-    const icon  = overdue > 0 ? '⚠️' : dueSoon > 0 ? '📋' : '✅';
-    const color = overdue > 0 ? 'var(--c-over)' : dueSoon > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
-    updateHouseHealthCard(label, icon, color);
-  } catch(e) {
-    updateHouseHealthCard('Tap to open chores app', '🏠');
-  }
-}
-
-function updateHouseHealthCard(label, icon, color) {
-  const lbl  = document.getElementById('house-health-label');
-  const ico  = document.getElementById('house-health-icon');
-  const card = document.getElementById('house-health-card');
-  if (lbl)  lbl.textContent = label;
-  if (ico)  ico.textContent = icon;
-  if (card && color) card.style.borderColor = color + '40';
-}
-
-function renderHome() {
-  const el = document.getElementById('home-content');
-
-  // ── Sort categories by urgency ──
-  const sortedCats = [...categories].sort((a, b) => {
-    const maxRatio = cat => {
-      const ratios = allTasks.filter(t => t.cats.includes(cat.code))
-        .map(t => urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)));
-      return ratios.length ? Math.max(...ratios) : 0;
-    };
-    return maxRatio(b) - maxRatio(a);
-  });
-
-  // ── Urgent ritual tasks (not done today, ratio >= 0.7) ──
-  const urgentTasks = [...allTasks]
-    .filter(t => !isDoneToday(t.lastDone))
-    .map(t => ({ ...t, ratio: urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)) }))
-    .filter(t => t.ratio >= 0.7)
-    .sort((a, b) => b.ratio - a.ratio)
-    .slice(0, 5);
-
-  // ── Done today ──
-  const doneToday = [...allTasks]
-    .filter(t => isDoneToday(t.lastDone))
-    .sort((a, b) => new Date(b.lastDone) - new Date(a.lastDone));
-
-  let html = '';
-
-  // ── Game card (XP + HP + Rank) ──
-  html += '<div id="game-card" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:12px"></div>';
-
-  // ── House health card ──
-  html += '<div id="house-health-card" onclick="openChoresApp()" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px"><span style="font-size:26px">🏠</span><div style="flex:1"><div style="font-size:15px;font-weight:600;font-family:Playfair Display,serif">House health</div><div id="house-health-label" style="font-size:11px;color:var(--muted);margin-top:1px">Loading…</div></div><div id="house-health-icon" style="font-size:18px;flex-shrink:0">🏠</div></div>';
-
-  // ── Chores tile (always shown, below game card) ──
-  const choresDue  = allChores.filter(c => c.ratio >= 0.65);
-  const choresOver = allChores.filter(c => c.ratio >= 1).length;
-  const choreColor = choresOver > 0 ? 'var(--c-over)' : choresDue.length > 0 ? 'var(--c-due)' : 'var(--c-fresh)';
-  const choreLabel = choresOver > 0 ? `${choresOver} overdue` : choresDue.length > 0 ? `${choresDue.length} due soon` : 'All clear';
-  const choreIcon  = choresOver > 0 ? '⚠️' : choresDue.length > 0 ? '📋' : '✓';
-  html += `<div id="chores-tile-card" onclick="openChoresApp()" style="background:rgba(255,255,255,.05);border:1.5px solid ${choreColor}30;border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
-    <span style="font-size:26px">🏠</span>
-    <div style="flex:1">
-      <div style="font-size:15px;font-weight:600;font-family:'Playfair Display',serif">Chores</div>
-      <div class="chores-tile-label" style="font-size:11px;color:var(--muted);margin-top:1px">${choreLabel} · tap to manage</div>
-    </div>
-    <div class="chores-tile-icon" style="font-size:11px;font-weight:700;color:${choreColor};flex-shrink:0">${choreIcon}</div>
-  </div>`;
-
-  // ── Urgent ritual strip ──
-  if (urgentTasks.length > 0) {
-    html += '<div class="section-label">Needs attention</div>';
-    html += '<div class="urgent-strip" id="urgent-strip"></div>';
-  }
-
-  // ── Category grid ──
-  if (sortedCats.length === 0) {
-    html += '<div class="empty-state"><span class="e-icon">💀</span>No categories found.<br><span style="font-size:12px;opacity:.6">Add entries to column I of your sheet<br>e.g. <code>self = Self Care 🪥</code></span></div>';
-  } else {
-    html += '<div class="section-label" style="margin-top:16px">Categories</div>';
-    html += '<div class="category-grid" id="cat-grid">';
-    sortedCats.forEach(cat => {
-      const catTasks = allTasks.filter(t => t.cats.includes(cat.code));
-      const ratios   = catTasks.map(t => urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)));
-      const maxRatio = ratios.length ? Math.max(...ratios) : 0;
-      const overdue  = ratios.filter(r => r >= 1).length;
-      const due      = ratios.filter(r => r >= 0.85 && r < 1).length;
-      const fillColor = urgencyColor(maxRatio);
-      const fillPct   = Math.min(maxRatio * 100, 100);
-      const cls = overdue ? ' has-overdue' : due ? ' has-due' : '';
-      const topTask = catTasks
-        .map(t => ({ ...t, ratio: urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)) }))
-        .sort((a,b) => b.ratio - a.ratio)[0];
-      html += `
-        <div class="category-card${cls}" data-cat="${cat.code}" data-top-row="${topTask ? topTask.sheetRow : ''}" data-top-name="${topTask ? topTask.name : ''}">
-          ${overdue ? `<div class="cat-badge" style="top:38px;right:10px">${overdue} due</div>` : ''}
-          <span class="cat-emoji">${cat.emoji}</span>
-          <div class="cat-name">${cat.name}</div>
-          <div class="cat-stats">${catTasks.length} ritual${catTasks.length !== 1 ? 's' : ''}</div>
-          <div style="display:flex;gap:4px;margin-top:6px">${renderRhythmDots(cat.code)}</div>
-          <div class="cat-urgency-bar"><div class="cat-urgency-fill" style="background:${fillColor}" data-target="${fillPct}%"></div></div>
-          ${topTask && topTask.ratio >= 0.7 ? `<div class="cat-hint">hold to mark "${topTask.name}" done</div>` : ''}
-          <div class="cat-tap-btn" onclick="event.stopPropagation();showTasks('${cat.code}')">›</div>
-        </div>`;
-    });
-    html += '</div>';
-  }
-
-  // ── Done today ──
-  if (doneToday.length > 0) {
-    html += '<div class="section-label" style="margin-top:16px">Done today</div>';
-    html += '<div class="done-today-strip">';
-    doneToday.forEach(t => {
-      const time = t.lastDone ? new Date(t.lastDone).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
-      html += `
-        <div class="done-today-row">
-          <span class="done-today-check">✓</span>
-          <span class="done-today-name">${t.name}</span>
-          <span class="done-today-time">${time}</span>
-        </div>`;
-    });
-    html += '</div>';
-  }
-
-  el.innerHTML = html;
-
-  // ── Populate urgent strip (ONCE) ──
-  const urgentStrip = el.querySelector('#urgent-strip');
-  if (urgentStrip) {
-    urgentTasks.forEach(t => {
-      const level     = urgencyLevel(t.ratio);
-      const color     = urgencyColor(t.ratio);
-      const width     = Math.min(t.ratio * 100, 100) + '%';
-      const catLabels = t.cats.map(c => catEmoji(c) + ' ' + catName(c)).join(' · ');
-
-      const wrap = document.createElement('div');
-      wrap.className = 'task-card-wrap';
-
-      const bgDone   = document.createElement('div');
-      bgDone.className = 'swipe-bg-done'; bgDone.innerHTML = '✓';
-
-      const bgSnooze = document.createElement('div');
-      bgSnooze.className = 'swipe-bg-snooze'; bgSnooze.innerHTML = '🌙';
-
-      const card = document.createElement('div');
-      card.className = 'urgent-card';
-      card.dataset.urgency = level;
-      card.dataset.row = t.sheetRow;
-      card.style.cssText = 'touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1;border-radius:14px;overflow:hidden';
-      card.innerHTML = `
-        <div class="urgent-inner">
-          <div class="urgent-meta">
-            <div class="urgent-name">${t.name}</div>
-            <div class="urgent-cat">${catLabels}</div>
-          </div>
-        </div>
-        <div class="urgent-last">${relativeTime(t.lastDone)}</div>
-        <div class="urgent-bar"><div class="urgent-fill" style="background:${color}" data-target="${width}"></div></div>
-      `;
-
-      wrap.appendChild(bgDone); wrap.appendChild(bgSnooze); wrap.appendChild(card);
-      urgentStrip.appendChild(wrap);
-      attachHomeSwipe(card, bgDone, bgSnooze, t.sheetRow);
+function burstParticles(ox, oy, count=35) {
+  const c = _cvs(); if (!c) return;
+  c.width=innerWidth; c.height=innerHeight; c.style.opacity='1';
+  if (_raf) { cancelAnimationFrame(_raf); _raf=null; }
+  _pts=[]; _flash=0.6;
+  for (let i=0;i<count;i++) {
+    const ang=Math.random()*Math.PI*2, spd=3+Math.random()*7;
+    const sz=3+Math.random()*9, lf=0.8+Math.random()*0.8;
+    const hue=Math.floor(Math.random()*360);
+    _pts.push({
+      x:ox,y:oy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-2,
+      sz,lf,ml:lf,color:`hsl(${hue},100%,65%)`,
+      shape:Math.random()>.5?'circle':'star',rot:Math.random()*Math.PI*2,
     });
   }
-
-  // ── Animate urgency bars ──
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    el.querySelectorAll('[data-target]').forEach(el => { el.style.width = el.dataset.target; });
-  }));
-
-  // ── Attach category card events ──
-  el.querySelectorAll('.category-card').forEach(card => {
-    attachCatCardEvents(card);
-  });
-
-  // ── Render game card now HTML is in DOM ──
-  renderGameCard();
+  _raf = requestAnimationFrame(_animPts);
 }
 
-// ─── Category card: tap + long press ──────────────
-function attachCatCardEvents(card) {
-  let pressTimer = null;
-  let pressing   = false;
+// ─── Utilities ────────────────────────────────────────────────────────────
+const colLetter = n => String.fromCharCode(64 + n);
 
-  const startPress = (e) => {
-    pressing = true;
-    card.classList.add('long-press-active');
-    pressTimer = setTimeout(() => {
-      if (!pressing) return;
-      const topRow  = card.dataset.topRow;
-      const topName = card.dataset.topName;
-      if (!topRow || !topName) { showToast('No tasks due in this category'); card.classList.remove('long-press-active'); return; }
-      // Show confirm overlay
-      const lp = document.getElementById('lp-confirm');
-      lp.innerHTML = `Mark <strong>${topName}</strong> as done? <br><span style="font-size:11px;opacity:.6">Tap again to confirm</span>`;
-      lp.classList.add('show');
-      lp.dataset.row  = topRow;
-      lp.dataset.name = topName;
-      card.classList.remove('long-press-active');
-      setTimeout(() => lp.classList.remove('show'), 4000);
-    }, 600);
-  };
-
-  const endPress = (e) => {
-    pressing = false;
-    card.classList.remove('long-press-active');
-    clearTimeout(pressTimer);
-    // Navigation handled by the › tap button — long press only here
-  };
-
-  const cancelPress = () => {
-    pressing = false;
-    card.classList.remove('long-press-active');
-    clearTimeout(pressTimer);
-  };
-
-  card.addEventListener('touchstart', startPress, { passive: true });
-  card.addEventListener('touchend',   endPress);
-  card.addEventListener('touchmove',  cancelPress, { passive: true });
-  card.addEventListener('mousedown',  startPress);
-  card.addEventListener('mouseup',    endPress);
-  card.addEventListener('mouseleave', cancelPress);
+function showToast(msg, dur=2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
 }
 
-// Long press confirm tap
-document.addEventListener('click', (e) => {
-  const lp = document.getElementById('lp-confirm');
-  if (lp.classList.contains('show')) {
-    const row  = parseInt(lp.dataset.row);
-    const name = lp.dataset.name;
-    lp.classList.remove('show');
-    if (row) markDoneHome(row, null, name);
+function formatDate(d) {
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function daysSince(date) {
+  if (!date) return Infinity;
+  return (Date.now() - date.getTime()) / 86400000;
+}
+
+function relativeTime(date) {
+  if (!date) return 'Never done';
+  const d=daysSince(date), now=new Date(), hr=now.getHours();
+  if (d < 0.04) return 'Done just now';
+  if (d < 1) {
+    const dh = new Date(date).getHours();
+    if (dh<12&&hr>=12) return 'Done this morning';
+    return 'Done today';
   }
-});
-
-
-// ─── Mark Done from home ──────────────────────────
-async function markDoneHome(sheetRow, btn, taskName) {
-  if (btn) btn.disabled = true;
-  const now   = new Date();
-  const value = formatDate(now);
-  const range = `${CONFIG.SHEET_NAME}!${colLetter(CONFIG.COL_LAST_DONE)}${sheetRow}`;
-
-  // Apply locally immediately regardless of connectivity
-  applyDoneLocally(sheetRow, now, btn);
-
-  // Award XP + HP for completing a ritual task
-  addXP(XP_RITUAL_TASK);
-  addHP(HP_RITUAL_TASK);
-  setTimeout(renderGameCard, 150);
-
-  const cb = async () => {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
-    try {
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [[value]] }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      dequeue(sheetRow); // ensure not in queue if it was
-    } catch(e) {
-      // Network failed mid-request — queue it
-      enqueue(sheetRow, value);
-      showToast('Queued — will sync when online 📶');
-    }
-  };
-
-  if (accessToken) { await cb(); }
-  else { pendingWrite = { customCallback: cb }; initOAuth(); }
-}
-
-// ─── TASKS VIEW ───────────────────────────────────
-function showTasks(catCode) {
-  currentCategory = catCode;
-  // Restore remembered filter for this category
-  filterDays = catFilters[catCode] || 4;
-  document.getElementById('view-home').classList.remove('active');
-  document.getElementById('view-tasks').classList.add('active');
-  document.getElementById('task-view-emoji').textContent = catEmoji(catCode);
-  document.getElementById('task-view-title').textContent = catName(catCode);
-  // Sync filter pill UI
-  document.querySelectorAll('.filter-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.days) === filterDays);
-  });
-  renderTasks();
-}
-
-function setFilter(days) {
-  filterDays = days;
-  if (currentCategory) catFilters[currentCategory] = days;
-  document.querySelectorAll('.filter-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.days) === days);
-  });
-  renderTasks();
-}
-
-function renderTasks() {
-  const list = document.getElementById('task-list');
-  // Keep swipe hint, clear rest
-  list.innerHTML = '<div class="swipe-hint">← swipe left to done · quiet right 🌙</div>';
-
-  const catTasks = allTasks.filter(t => t.cats.includes(currentCategory));
-  const sorted   = [...catTasks].sort((a, b) =>
-    urgencyRatio(b.minDays, b.maxDays, daysSince(b.lastDone)) -
-    urgencyRatio(a.minDays, a.maxDays, daysSince(a.lastDone))
-  );
-  const filtered = sorted.filter(t => {
-    const ratio       = urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone));
-    const daysUntilDue = t.maxDays - daysSince(t.lastDone);
-    if (filterDays === 999) return ratio >= 1;
-    return daysUntilDue <= filterDays || ratio >= 1;
-  });
-
-  if (filtered.length === 0) {
-    list.innerHTML += `<div class="empty-state"><span class="e-icon">✨</span>All caught up!<br><span style="font-size:12px;opacity:.6">Nothing due within ${filterDays === 999 ? 'the deadline' : filterDays + ' day' + (filterDays !== 1 ? 's' : '')}.</span></div>`;
-    return;
+  if (d < 2) {
+    const dh = new Date(date).getHours();
+    if (dh>=18) return 'Done last night';
+    if (dh>=12) return 'Done yesterday afternoon';
+    return 'Done yesterday';
   }
-
-  filtered.filter(t => !isSnoozed(t.sheetRow)).forEach(task => {
-    const ratio = urgencyRatio(task.minDays, task.maxDays, daysSince(task.lastDone));
-    const level = urgencyLevel(ratio);
-    const color = urgencyColor(ratio);
-    const width = Math.min(ratio * 100, 100) + '%';
-    const otherCats = task.cats.filter(c => c !== currentCategory)
-      .map(c => catEmoji(c) + ' ' + catName(c)).filter(Boolean).join(' · ');
-
-    const wrap = document.createElement('div');
-    wrap.className = 'task-card-wrap';
-
-    const bgDone = document.createElement('div');
-    bgDone.className = 'swipe-bg-done';
-    bgDone.innerHTML = '✓';
-
-    const bgSnooze = document.createElement('div');
-    bgSnooze.className = 'swipe-bg-snooze';
-    bgSnooze.innerHTML = '🌙';
-
-    const card = document.createElement('div');
-    card.className = 'task-card';
-    card.dataset.urgency = level;
-    card.dataset.row = task.sheetRow;
-    card.innerHTML = `
-      <div class="task-inner">
-        <div class="task-info">
-          <div class="task-name">${task.name}</div>
-          ${otherCats ? `<div class="task-cats">Also in: ${otherCats}</div>` : ''}
-          ${task.oneOff ? `<div class="task-cats" style="color:var(--accent)">✦ One-off</div>` : ''}
-        </div>
-      </div>
-      <div class="task-last">${relativeTime(task.lastDone)}</div>
-      <div class="urgency-bar"><div class="urgency-fill" style="background:${color}" data-target="${width}"></div></div>
-    `;
-
-    wrap.appendChild(bgDone);
-    wrap.appendChild(bgSnooze);
-    wrap.appendChild(card);
-    list.appendChild(wrap);
-
-    attachSwipe(card, bgDone, bgSnooze, task.sheetRow);
-  });
-
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    list.querySelectorAll('.urgency-fill').forEach(el => { el.style.width = el.dataset.target; });
-  }));
+  const days = Math.floor(d);
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days/7)} week${Math.floor(days/7)>1?'s':''} ago`;
+  return `${Math.floor(days/30)} month${Math.floor(days/30)>1?'s':''} ago`;
 }
 
-// ─── Home swipe (urgent strip) ──────────────────────────
-function attachHomeSwipe(card, bgDone, bgSnooze, sheetRow) {
-  let startX = 0, startY = 0, dx = 0, tracking = false;
-  const THR = 90;
-  card.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-    tracking = true; dx = 0;
-  }, { passive: true });
-  card.addEventListener('touchmove', e => {
-    if (!tracking) return;
-    const mx = e.touches[0].clientX - startX;
-    const my = e.touches[0].clientY - startY;
-    if (Math.abs(my) > Math.abs(mx) + 10) {
-      tracking = false; card.style.transform = '';
-      bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible'); return;
-    }
-    dx = Math.max(-140, Math.min(mx, 140));
-    card.style.transform = `translateX(${dx}px)`;
-    card.style.transition = 'none';
-    bgDone.classList.toggle('visible', dx < -30);
-    bgSnooze.classList.toggle('visible', dx > 30);
-  }, { passive: true });
-  card.addEventListener('touchend', () => {
-    if (!tracking) return;
-    tracking = false; card.style.transition = '';
-    bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible');
-    if (dx <= -THR) {
-      card.style.transform = 'translateX(-110%)'; card.style.opacity = '0';
-      if (navigator.vibrate) navigator.vibrate(40);
-      addXP(XP_RITUAL_TASK);
-      addHP(HP_RITUAL_TASK);
-      setTimeout(renderGameCard, 200);
-      markDoneHome(sheetRow, null);
-      card.style.animation = 'cardSnap .35s ease forwards';
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
-    } else if (dx >= THR) {
-      card.style.transform = 'translateX(110%)'; card.style.opacity = '0';
-      snoozeTask(sheetRow);
-      card.style.animation = 'cardSnap .35s ease forwards';
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
-    } else { card.style.transform = ''; }
-    dx = 0;
-  });
+function urgencyRatio(min, max, days) {
+  if (!isFinite(days)) return 1.5;
+  if (max <= 0) return 0;
+  return days / max;
+}
+function urgencyLevel(ratio) {
+  if (ratio <= 0.35) return 'fresh';
+  if (ratio <= 0.65) return 'ok';
+  if (ratio <= 0.85) return 'soon';
+  if (ratio <= 1.0)  return 'due';
+  return 'over';
+}
+function urgencyColor(ratio) {
+  return ({fresh:'var(--c-fresh)',ok:'var(--c-ok)',soon:'var(--c-soon)',due:'var(--c-due)',over:'var(--c-over)'})[urgencyLevel(ratio)];
 }
 
-// ─── Swipe to done ────────────────────────────────
-function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
-  let startX = 0, startY = 0, dx = 0;
-  let tracking = false;
-  const THRESHOLD = 90;
-
-  card.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    tracking = true;
-    dx = 0;
-  }, { passive: true });
-
-  card.addEventListener('touchmove', e => {
-    if (!tracking) return;
-    const moveX = e.touches[0].clientX - startX;
-    const moveY = e.touches[0].clientY - startY;
-    if (Math.abs(moveY) > Math.abs(moveX) + 10) {
-      tracking = false;
-      card.style.transform = '';
-      bgDone.classList.remove('visible');
-      bgSnooze.classList.remove('visible');
-      return;
-    }
-    dx = Math.max(-140, Math.min(moveX, 140));
-    card.style.transform = `translateX(${dx}px)`;
-    card.style.transition = 'none';
-    bgDone.classList.toggle('visible', dx < -30);
-    bgSnooze.classList.toggle('visible', dx > 30);
-  }, { passive: true });
-
-  card.addEventListener('touchend', () => {
-    if (!tracking) return;
-    tracking = false;
-    card.style.transition = '';
-    bgDone.classList.remove('visible');
-    bgSnooze.classList.remove('visible');
-
-    if (dx <= -THRESHOLD) {
-      // Swipe left — mark done
-      card.style.transform = 'translateX(-110%)';
-      card.style.opacity = '0';
-      if (navigator.vibrate) navigator.vibrate(40);
-      // XP + HP for completing a ritual task
-      addXP(XP_RITUAL_TASK);
-      addHP(HP_RITUAL_TASK);
-      setTimeout(renderGameCard, 200);
-      markDoneTask(sheetRow, null);
-      card.style.animation = 'cardSnap .35s ease forwards';
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
-    } else if (dx >= THRESHOLD) {
-      // Swipe right — quiet until midnight
-      card.style.transform = 'translateX(110%)';
-      card.style.opacity = '0';
-      snoozeTask(sheetRow);
-      card.style.animation = 'cardSnap .35s ease forwards';
-      setTimeout(() => card.closest('.task-card-wrap')?.remove(), 350);
-    } else {
-      card.style.transform = '';
-    }
-    dx = 0;
-  });
+function isDoneToday(date) {
+  if (!date) return false;
+  const now=new Date(), d=new Date(date);
+  return d.getDate()===now.getDate()&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
 }
 
-// ─── Mark Done (task view) ────────────────────────
-async function markDoneTask(sheetRow, btn) {
-  if (btn) btn.disabled = true;
-  const now   = new Date();
-  const value = formatDate(now);
-  const range = `${CONFIG.SHEET_NAME}!${colLetter(CONFIG.COL_LAST_DONE)}${sheetRow}`;
-
-  // Apply locally immediately
-  applyDoneLocally(sheetRow, now, btn);
-
-  // Award XP + HP for completing a ritual task
-  addXP(XP_RITUAL_TASK);
-  addHP(HP_RITUAL_TASK);
-  setTimeout(renderGameCard, 150);
-
-  if (accessToken) { await writeToSheet(range, value, btn, sheetRow, now, false); }
-  else { pendingWrite = { range, value, btn, sheetRow, timestamp: now, isHome: false }; initOAuth(); }
+function getDoneTodayCount() {
+  return allTasks.filter(t => isDoneToday(t.lastDone)).length;
 }
 
-async function writeToSheet(range, value, btn, sheetRow, timestamp, isHome) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
-  try {
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: [[value]] }),
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-
-    applyDoneLocally(sheetRow, timestamp, btn);
-
-    // If one-off, archive to Sheet2 then delete from Sheet1
-    const task = allTasks.find(t => t.sheetRow === sheetRow);
-    if (task?.oneOff) {
-      setTimeout(() => archiveAndDeleteOneOff(sheetRow, task.name, task.cats, timestamp), 1500);
-    }
-  } catch(e) {
-    showToast('Save failed — ' + e.message);
-    if (btn) btn.disabled = false;
-  }
+function getGreeting() {
+  const h=new Date().getHours();
+  return h<12?'Good morning':h<17?'Good afternoon':'Good evening';
 }
 
-// ─── Apply done result locally without full re-render ─────────
-// Updates in-memory task, patches affected DOM nodes, and adds
-// the task to the "Done today" strip without touching anything else.
-function applyDoneLocally(sheetRow, timestamp, btn) {
-  // 1. Update in-memory task
-  const task = allTasks.find(t => t.sheetRow === sheetRow);
-  const prevRatio = task ? (task.lastDone ? Math.min((Date.now()-task.lastDone.getTime())/86400000/(task.maxDays||1),1.8) : 1.5) : 0;
-  const urgentCountBefore = allTasks.filter(t => {
-    const r=t.lastDone?Math.min((Date.now()-t.lastDone.getTime())/86400000/(t.maxDays||1),1.8):1.5;
-    return r>=0.75&&!isSnoozed(t.sheetRow);
-  }).length;
-  if (task) task.lastDone = timestamp;
+function catEmoji(code) { const c=categories.find(c=>c.code===code); return c?c.emoji:''; }
+function catName(code)  { const c=categories.find(c=>c.code===code); return c?c.name:code; }
 
-  // 2. Update the task card if visible (task view)
-  if (btn) {
-    btn.classList.add('saving'); btn.textContent = '✓';
-    setTimeout(() => { btn.classList.remove('saving'); btn.textContent = 'Done'; btn.disabled = false; }, 1800);
-    const card = btn.closest('.task-card');
-    if (card) {
-      card.querySelector('.task-last').textContent = 'Done just now';
-      card.querySelector('.urgency-fill').style.width = '3%';
-      card.querySelector('.urgency-fill').style.background = 'var(--c-fresh)';
-      card.dataset.urgency = 'fresh';
-    }
-  }
-
-  showToast('Marked as done ✓');
-  // Record streak, rhythm, check redemption, celebrate if urgent clears
-  recordStreakDay();
-  if (task && task.cats) task.cats.forEach(c => recordRhythm(c));
-  if (prevRatio > 1.5) setTimeout(() => showToast('Back on track ✨'), 700);
-  checkUrgentClear(urgentCountBefore);
-  updateDoneTodayBadge();
-  renderStreakBadge();
-
-  // 3. Patch home screen without full rebuild
-  requestAnimationFrame(() => patchHomeAfterDone(sheetRow, timestamp));
-}
-
-function patchHomeAfterDone(sheetRow, timestamp) {
-  const homeEl = document.getElementById('home-content');
-  if (!homeEl) return;
-
-  // ── a) Remove the urgent card for this task if present ──
-  const urgentCard = homeEl.querySelector(`.urgent-card[data-row="${sheetRow}"]`);
-  if (urgentCard) {
-    urgentCard.style.transition = 'opacity .3s, transform .3s';
-    urgentCard.style.opacity = '0';
-    urgentCard.style.transform = 'translateX(20px)';
-    setTimeout(() => {
-      urgentCard.remove();
-      // If strip is now empty, remove its label too
-      const strip = homeEl.querySelector('#urgent-strip');
-      if (strip && strip.children.length === 0) {
-        strip.previousElementSibling?.remove(); // section label
-        strip.remove();
-      }
-    }, 300);
-  }
-
-  // ── b) Update the category card(s) for this task ──
-  const task = allTasks.find(t => t.sheetRow === sheetRow);
-  if (task) {
-    task.cats.forEach(catCode => {
-      const catCard = homeEl.querySelector(`.category-card[data-cat="${catCode}"]`);
-      if (!catCard) return;
-
-      const catTasks = allTasks.filter(t => t.cats.includes(catCode));
-      const ratios   = catTasks.map(t => urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)));
-      const maxRatio = ratios.length ? Math.max(...ratios) : 0;
-      const overdue  = ratios.filter(r => r >= 1).length;
-      const due      = ratios.filter(r => r >= 0.85 && r < 1).length;
-
-      // Update border class
-      catCard.classList.remove('has-overdue', 'has-due');
-      if (overdue) catCard.classList.add('has-overdue');
-      else if (due) catCard.classList.add('has-due');
-
-      // Update badge
-      const badge = catCard.querySelector('.cat-badge');
-      if (overdue) {
-        if (badge) badge.textContent = `${overdue} due`;
-        else {
-          const b = document.createElement('div');
-          b.className = 'cat-badge';
-          b.textContent = `${overdue} due`;
-          catCard.appendChild(b);
-        }
-      } else if (badge) badge.remove();
-
-      // Update urgency bar
-      const fill = catCard.querySelector('.cat-urgency-fill');
-      if (fill) {
-        fill.style.background = urgencyColor(maxRatio);
-        fill.style.width = Math.min(maxRatio * 100, 100) + '%';
-      }
-
-      // Update hint
-      const topTask = catTasks
-        .map(t => ({ ...t, ratio: urgencyRatio(t.minDays, t.maxDays, daysSince(t.lastDone)) }))
-        .sort((a,b) => b.ratio - a.ratio)[0];
-      let hint = catCard.querySelector('.cat-hint');
-      if (topTask && topTask.ratio >= 0.7) {
-        const hintText = `hold to mark "${topTask.name}" done`;
-        catCard.dataset.topRow  = topTask.sheetRow;
-        catCard.dataset.topName = topTask.name;
-        if (hint) hint.textContent = hintText;
-        else {
-          hint = document.createElement('div');
-          hint.className = 'cat-hint';
-          hint.textContent = hintText;
-          catCard.appendChild(hint);
-        }
-      } else {
-        hint?.remove();
-        catCard.dataset.topRow  = '';
-        catCard.dataset.topName = '';
-      }
-    });
-  }
-
-  // ── c) Add to / update "Done today" strip ──
-  const time = timestamp.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  const taskName = task ? task.name : '';
-
-  // Check if done-today section exists
-  let doneStrip = homeEl.querySelector('.done-today-strip');
-  if (!doneStrip) {
-    // Create section from scratch
-    const label = document.createElement('div');
-    label.className = 'section-label';
-    label.style.marginTop = '16px';
-    label.textContent = 'Done today';
-    homeEl.appendChild(label);
-    doneStrip = document.createElement('div');
-    doneStrip.className = 'done-today-strip';
-    homeEl.appendChild(doneStrip);
-  }
-
-  // Prepend new done row
-  const row = document.createElement('div');
-  row.className = 'done-today-row';
-  row.style.opacity = '0';
-  row.innerHTML = `<span class="done-today-check">✓</span><span class="done-today-name">${taskName}</span><span class="done-today-time">${time}</span>`;
-  doneStrip.insertBefore(row, doneStrip.firstChild);
-  requestAnimationFrame(() => { row.style.transition = 'opacity .3s'; row.style.opacity = '1'; });
-}
-
-// ─── Add Task ─────────────────────────────────────
-function openAddTask(preCatCode) {
-  const container = document.getElementById('new-cat-checks');
-  container.innerHTML = '';
-  categories.forEach(cat => {
-    const label = document.createElement('label');
-    label.className = 'cat-check-label';
-    const checked = preCatCode && cat.code === preCatCode ? 'checked' : '';
-    label.innerHTML = `<input type="checkbox" value="${cat.code}" ${checked}> ${cat.emoji} ${cat.name}`;
-    container.appendChild(label);
-  });
-  document.getElementById('add-overlay').classList.add('open');
-  document.getElementById('add-sheet').classList.add('open');
-  setTimeout(() => document.getElementById('new-name').focus(), 400);
-}
-
-function closeAddTask() {
-  document.getElementById('add-overlay').classList.remove('open');
-  document.getElementById('add-sheet').classList.remove('open');
-}
-
-async function submitNewTask() {
-  const name = document.getElementById('new-name').value.trim();
-  const min  = parseFloat(document.getElementById('new-min').value);
-  const max  = parseFloat(document.getElementById('new-max').value);
-  const cats = Array.from(document.querySelectorAll('#new-cat-checks input:checked')).map(cb => cb.value);
-
-  if (!name)        { showToast('Please enter a name'); return; }
-  if (!min || !max) { showToast('Please enter min and max days'); return; }
-  if (min > max)    { showToast('Min must be ≤ max days'); return; }
-
-  const btn = document.getElementById('add-submit-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
-
-  const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A:E`);
-  const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
-
-  const doAppend = async () => {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [[name, min, max, '', cats.join(' '), document.getElementById('new-oneoff').checked ? '1' : '']] }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      showToast(`"${name}" added ✓`);
-      closeAddTask();
-      document.getElementById('new-name').value = '';
-      document.getElementById('new-min').value  = '';
-      document.getElementById('new-max').value  = '';
-      document.querySelectorAll('#new-cat-checks input').forEach(cb => cb.checked = false);
-      document.getElementById('new-oneoff').checked = false;
-      await loadData();
-    } catch(e) {
-      showToast('Failed — ' + e.message);
-    } finally {
-      btn.disabled = false; btn.textContent = 'Add Ritual';
-    }
-  };
-
-  if (accessToken) { await doAppend(); }
-  else { pendingWrite = { customCallback: doAppend }; initOAuth(); }
-}
-
-// ─── Archive one-off to Sheet2 then delete from Sheet1 ──
-async function archiveAndDeleteOneOff(sheetRow, taskName, taskCats, completedAt) {
-  try {
-    // 1. Append to Sheet2: Name | Date Completed | Categories
-    const catLabels    = taskCats.map(c => catName(c)).filter(Boolean).join(', ');
-    const archiveRange = encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
-    const archiveUrl   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${archiveRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
-    await fetch(archiveUrl, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: [[taskName, formatDate(completedAt), catLabels]] }),
-    });
-
-    // 2. Get sheet metadata to find numeric sheetId
-    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?key=${CONFIG.API_KEY}`;
-    const meta    = await fetch(metaUrl).then(r => r.json());
-    const sheet   = meta.sheets.find(s => s.properties.title === CONFIG.SHEET_NAME);
-    if (!sheet) return;
-
-    // 3. Delete row from Sheet1
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: [{ deleteDimension: {
-          range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: sheetRow - 1, endIndex: sheetRow }
-        }}]
-      }),
-    });
-
-    // 4. Update in-memory
-    allTasks = allTasks.filter(t => t.sheetRow !== sheetRow);
-    allTasks = allTasks.map(t => t.sheetRow > sheetRow ? { ...t, sheetRow: t.sheetRow - 1 } : t);
-    renderHome();
-    if (currentCategory) renderTasks();
-    showToast('Archived to Past One-offs ✓');
-  } catch(e) {
-    console.warn('Archive failed:', e.message);
-    showToast('Archive failed — ' + e.message);
-  }
-}
-
-// ─── Past One-offs ────────────────────────────────
-async function openPastOneOffs() {
-  document.getElementById('past-overlay').classList.add('open');
-  document.getElementById('past-sheet').classList.add('open');
-
-  const container = document.getElementById('past-list');
-  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading…</div>';
-
-
-  try {
-    const range = encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
-    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
-    const res   = await fetch(url);
-    const data  = await res.json();
-    if (data.error) throw new Error(data.error.message);
-
-    const rows = (data.values || []).filter(r => r[0]);
-    if (rows.length === 0) {
-      container.innerHTML = '<div class="empty-state"><span class="e-icon">📭</span>No completed one-offs yet.</div>';
-      return;
-    }
-
-    // Sort most recent first
-    rows.sort((a, b) => new Date(b[1] || 0) - new Date(a[1] || 0));
-    container.innerHTML = renderPastRows(rows);
-  } catch(e) {
-    container.innerHTML = `<div class="error-msg">⚠️ Couldn't load<br>${e.message}</div>`;
-  }
-}
-
-function renderPastRows(rows) {
-  return rows.map(row => {
-    const name = row[0] || '';
-    const date = row[1] || '';
-    const cats = row[2] || '';
-    return `
-      <div style="display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--border)">
-        <div style="flex:1">
-          <div style="font-size:15px;font-weight:500;color:var(--ink)">${name}</div>
-          ${cats ? `<div style="font-size:11px;color:var(--ink-muted);margin-top:2px">📂 ${cats}</div>` : ''}
-        </div>
-        <div style="font-size:11px;color:var(--ink-soft);text-align:right;line-height:1.5">${date}</div>
-      </div>`;
-  }).join('') + '<div style="height:1px"></div>';
-}
-
-function closePastOneOffs() {
-  document.getElementById('past-overlay').classList.remove('open');
-  document.getElementById('past-sheet').classList.remove('open');
-}
-
-// ─── Snooze task for 1 day ───────────────────────────
-const SNOOZE_KEY = 'ritual_snoozed_v1';
-
+// ─── Snooze ───────────────────────────────────────────────────────────────
 function getSnoozed() {
   try {
     const raw = JSON.parse(localStorage.getItem(SNOOZE_KEY)) || {};
-    // Purge any expired entries
-    const now = Date.now();
-    let changed = false;
+    const now = Date.now(); let changed = false;
     for (const k of Object.keys(raw)) {
       if (now > raw[k]) { delete raw[k]; changed = true; }
     }
@@ -2252,48 +993,283 @@ function getSnoozed() {
   } catch { return {}; }
 }
 
-function snoozeTask(sheetRow) {
-  const snoozed = getSnoozed();
-  const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
-  snoozed[sheetRow] = midnight.getTime();
-  localStorage.setItem(SNOOZE_KEY, JSON.stringify(snoozed));
-  showToast('Quiet until midnight 🌙');
-}
-
 function isSnoozed(sheetRow) {
-  const snoozed = getSnoozed();
-  const expiry  = snoozed[sheetRow];
+  const s=getSnoozed(), expiry=s[sheetRow];
   if (!expiry) return false;
   if (Date.now() > expiry) {
-    delete snoozed[sheetRow];
-    localStorage.setItem(SNOOZE_KEY, JSON.stringify(snoozed));
+    delete s[sheetRow];
+    localStorage.setItem(SNOOZE_KEY, JSON.stringify(s));
     return false;
   }
   return true;
 }
 
-// ─── OAuth ────────────────────────────────────────
-function isTokenValid() {
-  return accessToken && Date.now() < tokenExpiry - 30000;
+function snoozeTask(sheetRow) {
+  const s=getSnoozed(), midnight=new Date();
+  midnight.setHours(24,0,0,0);
+  s[sheetRow]=midnight.getTime();
+  localStorage.setItem(SNOOZE_KEY, JSON.stringify(s));
+  showToast('Quiet until midnight 🌙');
 }
 
-function refreshOAuth() {
-  accessToken = null;
-  tokenExpiry = 0;
-  showToast('Reconnecting…');
-  initOAuth();
+// ─── Streak ───────────────────────────────────────────────────────────────
+function getStreakData() {
+  try { return JSON.parse(localStorage.getItem(STREAK_KEY))||{current:0,best:0,lastDate:null}; }
+  catch { return {current:0,best:0,lastDate:null}; }
 }
+
+function recordStreakDay() {
+  const data=getStreakData(), today=new Date().toDateString();
+  if (data.lastDate===today) return;
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  data.current = data.lastDate===yesterday ? data.current+1 : 1;
+  data.best = Math.max(data.best, data.current);
+  data.lastDate = today;
+  localStorage.setItem(STREAK_KEY, JSON.stringify(data));
+}
+
+function renderStreakBadge() {
+  const el=document.getElementById('streak-badge');
+  if (!el) return;
+  const {current,best}=getStreakData();
+  if (current<1) { el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML=`<span style="font-size:14px">🔥</span><span>${current} day streak${best>current?` · best ${best}`:current>=best&&current>1?' · best ever! 🏆':''}</span>`;
+}
+
+// ─── Rhythm ───────────────────────────────────────────────────────────────
+function getWeeklyRhythm(catCode) {
+  const RHYTHM_KEY='ritual_rhythm_v1';
+  try { return (JSON.parse(localStorage.getItem(RHYTHM_KEY))||{})[catCode]||[false,false,false,false,false,false,false]; }
+  catch { return [false,false,false,false,false,false,false]; }
+}
+
+function recordRhythm(catCode) {
+  const RHYTHM_KEY='ritual_rhythm_v1';
+  try {
+    const data=JSON.parse(localStorage.getItem(RHYTHM_KEY))||{};
+    const r=data[catCode]||[false,false,false,false,false,false,false];
+    r[new Date().getDay()]=true; data[catCode]=r;
+    localStorage.setItem(RHYTHM_KEY, JSON.stringify(data));
+  } catch {}
+}
+
+function renderRhythmDots(catCode) {
+  const rhythm=getWeeklyRhythm(catCode), days=['S','M','T','W','T','F','S'], today=new Date().getDay();
+  return days.map((d,i)=>{
+    const done=rhythm[i], isToday=i===today;
+    const bg=done?'var(--c-fresh)':isToday?'var(--ink-mute)':'var(--border)';
+    const op=done?'1':isToday?'0.5':'0.2';
+    return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${op};flex-shrink:0"></div>`;
+  }).join('');
+}
+
+// ─── Game system ──────────────────────────────────────────────────────────
+function loadGame() { try { return JSON.parse(localStorage.getItem(GAME_KEY))||{}; } catch { return {}; } }
+function saveGame(g) { localStorage.setItem(GAME_KEY, JSON.stringify(g)); }
+
+function getRank(xp) {
+  let rank=RANKS[0];
+  for (const r of RANKS) { if (xp>=r.min) rank=r; else break; }
+  return rank;
+}
+function getRankIndex(xp) {
+  let idx=0;
+  for (let i=0;i<RANKS.length;i++) { if (xp>=RANKS[i].min) idx=i; else break; }
+  return idx;
+}
+function rankProgress(xp) {
+  const idx=getRankIndex(xp);
+  if (idx>=RANKS.length-1) return 100;
+  return Math.round(((xp-RANKS[idx].min)/(RANKS[idx+1].min-RANKS[idx].min))*100);
+}
+function xpToNextRank(xp) {
+  const idx=getRankIndex(xp);
+  return idx>=RANKS.length-1 ? null : RANKS[idx+1].min-xp;
+}
+
+function addXP(amount) {
+  const g=loadGame(), prev=g.xp||0;
+  g.xp = Math.max(0, prev+amount);
+  if (amount > 0) g.hp = Math.min(HP_MAX, (g.hp??HP_MAX)+HP_RITUAL_TASK);
+  const prevIdx=getRankIndex(prev), newIdx=getRankIndex(g.xp);
+  saveGame(g);
+  if (newIdx < prevIdx) {
+    const r=RANKS[newIdx];
+    setTimeout(()=>showToast(`Rank dropped to ${r.emoji} ${r.name}`,3000),500);
+  } else if (newIdx > prevIdx) {
+    const r=RANKS[newIdx];
+    setTimeout(()=>{ showToast(`Rank up! ${r.emoji} ${r.name}!`,3000); burstParticles(innerWidth/2,innerHeight*.4,50); },400);
+  }
+  return g;
+}
+
+function addHP(amount) {
+  const g=loadGame();
+  g.hp = Math.min(HP_MAX, Math.max(0,(g.hp??HP_MAX)+amount));
+  saveGame(g); return g;
+}
+
+function dailyRegen() {
+  const g=loadGame(), today=new Date().toDateString();
+  if (g.lastRegenDate===today) return;
+  g.lastRegenDate=today;
+  g.hp=Math.min(HP_MAX,(g.hp??HP_MAX)+HP_REGEN_DAILY);
+  saveGame(g);
+}
+
+// ─── Negative items ───────────────────────────────────────────────────────
+function getNegToday() {
+  try {
+    const raw=JSON.parse(localStorage.getItem(NEG_KEY))||{};
+    if (raw.date!==new Date().toDateString()) return {};
+    return raw.counts||{};
+  } catch { return {}; }
+}
+function saveNegToday(counts) {
+  localStorage.setItem(NEG_KEY, JSON.stringify({date:new Date().toDateString(),counts}));
+}
+
+function logNegativeItem(id) {
+  const item=NEGATIVE_ITEMS.find(n=>n.id===id); if (!item) return;
+  const counts=getNegToday();
+  counts[id]=(counts[id]||0)+1;
+  saveNegToday(counts);
+  const over = item.limit===0 ? 1 : Math.max(0,counts[id]-item.limit);
+  if (over > 0) {
+    const g=addHP(-item.hpCost);
+    addXP(XP_NEGATIVE);
+    const hp=Math.round(g.hp);
+    showToast(`${item.icon} ${item.name} — -${item.hpCost} HP (${hp} left)`,2800);
+    renderGameCard();
+    if (hp<30) setTimeout(()=>showToast('⚠️ HP low — take care of yourself',2800),3000);
+  } else {
+    const left=item.limit-counts[id];
+    showToast(`${item.icon} ${item.name} logged · ${left} left today`,2200);
+    renderGameCard();
+  }
+  openNegativeSheet(); // refresh counts in the sheet
+}
+
+function openNegativeSheet() {
+  const el=document.getElementById('neg-sheet'); if (!el) return;
+  const counts=getNegToday();
+  el.innerHTML=NEGATIVE_ITEMS.map(n=>{
+    const count=counts[n.id]||0;
+    const over=n.limit===0?count:Math.max(0,count-n.limit);
+    const limitTxt=n.limit>0?`Limit: ${n.limit}/day`:'Always harmful';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="font-size:24px;flex-shrink:0">${n.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${n.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${n.desc} · ${limitTxt}</div>
+        ${count>0?`<div style="font-size:11px;color:${over>0?'#a03030':'#5a8a5e'};margin-top:2px">${count} today${over>0?` · ${over} over limit`:''}</div>`:''}
+      </div>
+      <button onclick="logNegativeItem('${n.id}')" style="background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;color:#f0e8d8;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">+1</button>
+    </div>`;
+  }).join('');
+  document.getElementById('neg-overlay').style.display='flex';
+}
+
+function closeNegativeSheet() {
+  document.getElementById('neg-overlay').style.display='none';
+}
+
+// ─── Game card render ─────────────────────────────────────────────────────
+function renderGameCard() {
+  const el=document.getElementById('game-card'); if (!el) return;
+  const g=loadGame(), xp=g.xp||0, hp=Math.round(g.hp??HP_MAX);
+  const rank=getRank(xp), prog=rankProgress(xp), toNext=xpToNextRank(xp);
+  const counts=getNegToday();
+  const negLogged=NEGATIVE_ITEMS.filter(n=>counts[n.id]>0);
+  const hpColor=hp>60?'#5a8a5e':hp>30?'#c9a84c':'#a03030';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="font-size:36px;line-height:1">${rank.emoji}</div>
+      <div style="flex:1">
+        <div style="font-size:17px;font-weight:700;color:${rank.color};font-family:'Playfair Display',serif">${rank.name}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:1px">${xp} XP${toNext?` · ${toNext} to next rank`:' · Max rank'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:700;color:${hpColor}">${hp}</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:.5px">HP</div>
+      </div>
+    </div>
+    <div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Rank progress</span><span>${prog}%</span></div>
+      <div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:${prog}%;background:${rank.color};border-radius:4px;transition:width 1s ease"></div></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Health</span><span>${hp}/100</span></div>
+      <div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:${hp}%;background:${hpColor};border-radius:4px;transition:width 1s ease"></div></div>
+    </div>
+    <button onclick="openNegativeSheet()" style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between">
+      <span>${negLogged.length?negLogged.map(n=>n.icon).join(' ')+' logged today':'+ Log a negative item'}</span>
+      <span style="opacity:.5">›</span>
+    </button>`;
+}
+
+// ─── House health (read-only from chores sheet) ───────────────────────────
+function openChoresApp() { window.location.href = CHORES_APP_URL; }
+
+async function fetchHouseHealth() {
+  // Reads cols C+D from chores sheet — max days and last done date
+  // No writing — purely for the health indicator
+  if (CHORES_SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) {
+    updateHouseHealthCard('Tap to open chores app', '🏠', null);
+    return;
+  }
+  try {
+    const range = encodeURIComponent(`Sheet1!C2:D`);
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CHORES_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const res   = await fetch(url);
+    const data  = await res.json();
+    if (data.error) { updateHouseHealthCard('Tap to open chores app', '🏠', null); return; }
+    const rows=data.values||[];
+    const now=Date.now();
+    let overdue=0, dueSoon=0;
+    rows.forEach(row => {
+      const maxDays=parseFloat(row[0])||7;
+      if (maxDays===0) return; // one-off
+      const lastDone=parseDate(row[1]||'');
+      if (!lastDone) { overdue++; return; }
+      const ratio=(now-lastDone.getTime())/86400000/maxDays;
+      if (ratio>=1) overdue++;
+      else if (ratio>=0.75) dueSoon++;
+    });
+    const label = overdue>0 ? `${overdue} overdue · ${dueSoon} due soon · tap to manage`
+                : dueSoon>0 ? `${dueSoon} due soon · tap to manage`
+                : 'All clear · tap to open chores app';
+    const icon  = overdue>0 ? '⚠️' : dueSoon>0 ? '📋' : '✅';
+    const color = overdue>0 ? 'var(--c-over)' : dueSoon>0 ? 'var(--c-due)' : 'var(--c-fresh)';
+    updateHouseHealthCard(label, icon, color);
+  } catch { updateHouseHealthCard('Tap to open chores app', '🏠', null); }
+}
+
+function updateHouseHealthCard(label, icon, color) {
+  const lbl=document.getElementById('house-health-label');
+  const ico=document.getElementById('house-health-icon');
+  const card=document.getElementById('house-health-card');
+  if (lbl) lbl.textContent=label;
+  if (ico) ico.textContent=icon;
+  if (card && color) card.style.borderColor=color+'40';
+}
+
+// ─── OAuth ────────────────────────────────────────────────────────────────
+function isTokenValid() { return accessToken && Date.now() < tokenExpiry - 30000; }
+
+function refreshOAuth() { accessToken=null; tokenExpiry=0; showToast('Reconnecting…'); initOAuth(); }
 
 function initOAuth() {
   if (OAUTH_CLIENT_ID.includes('YOUR_OAUTH_CLIENT_ID_HERE')) {
     showToast('Set OAUTH_CLIENT_ID to enable saving');
-    if (pendingWrite?.btn) pendingWrite.btn.disabled = false;
+    if (pendingWrite?.btn) pendingWrite.btn.disabled=false;
     return;
   }
   if (!window.google) {
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = () => startTokenFlow();
+    const s=document.createElement('script');
+    s.src='https://accounts.google.com/gsi/client';
+    s.onload=()=>startTokenFlow();
     document.head.appendChild(s);
   } else { startTokenFlow(); }
 }
@@ -2305,187 +1281,727 @@ function startTokenFlow() {
     callback: async (resp) => {
       if (resp.error) {
         showToast('Sign-in cancelled');
-        if (pendingWrite?.btn) pendingWrite.btn.disabled = false;
+        if (pendingWrite?.btn) pendingWrite.btn.disabled=false;
         return;
       }
       accessToken = resp.access_token;
       tokenExpiry = Date.now() + 3540000; // 59 min
       if (pendingWrite) {
-        const pw = pendingWrite; pendingWrite = null;
-        if (pw.customCallback) { await pw.customCallback(); }
-        else { await writeToSheet(pw.range, pw.value, pw.btn, pw.sheetRow, pw.timestamp, pw.isHome); }
+        const pw=pendingWrite; pendingWrite=null;
+        if (pw.customCallback) await pw.customCallback();
+        else await writeToSheet(pw.range, pw.value, pw.btn, pw.sheetRow, pw.timestamp, pw.isHome);
       }
     },
   });
   tokenClient.requestAccessToken({ prompt: '' });
 }
 
-// ─── Offline badge ────────────────────────────────
-
-
-
-// ─── Landing ──────────────────────────────────────
-function updateLandingGreeting() {
-  const el = document.getElementById('landing-greeting');
-  if (el) el.textContent = getGreeting() + ' — your rituals are waiting.';
+// ─── Legend / data cache ──────────────────────────────────────────────────
+function loadLegendCache() {
+  try {
+    const raw=localStorage.getItem(LEGEND_KEY); if (!raw) return null;
+    const {ts,cats}=JSON.parse(raw);
+    return Date.now()-ts > LEGEND_TTL_MS ? null : cats;
+  } catch { return null; }
 }
-updateLandingGreeting();
+function saveLegendCache(cats) {
+  try { localStorage.setItem(LEGEND_KEY, JSON.stringify({ts:Date.now(),cats})); } catch {}
+}
+function bustLegendCache() { try { localStorage.removeItem(LEGEND_KEY); } catch {} }
+
+function parseLegend(rows) {
+  // Reads column I entries: "code = Name Emoji"
+  // These are RITUAL categories (e.g. self = Self Care 🪥)
+  // NOT chore room codes — if you see room names here, check CONFIG.SHEET_ID
+  const cats=[];
+  rows.forEach(row => {
+    const cell=(row[CONFIG.COL_LEGEND-1]||'').trim();
+    if (!cell) return;
+    const m=cell.match(/^([^\s=]+)\s*=\s*(.+)$/);
+    if (!m) return;
+    const code=m[1].toLowerCase(), rest=m[2].trim();
+    const em=rest.match(/^(.*?)\s*(\p{Emoji}+)\s*$/u);
+    let name, emoji;
+    if (em) { name=em[1].trim()||em[2]; emoji=em[2]; }
+    else     { name=rest; emoji='📌'; }
+    if (!cats.find(c=>c.code===code)) cats.push({code,name,emoji});
+  });
+  return cats;
+}
+
+function parseTaskRows(rows) {
+  // Parses ritual sheet rows — col E contains category codes (space-separated)
+  // Each task belongs to one or more ritual categories
+  return rows
+    .filter(r => r[CONFIG.COL_NAME-1])
+    .map((row,i) => {
+      const name     = row[CONFIG.COL_NAME-1]||'';
+      const minDays  = parseFloat(row[CONFIG.COL_MIN-1])||1;
+      const maxDays  = parseFloat(row[CONFIG.COL_MAX-1])||7;
+      const lastDone = parseDate(row[CONFIG.COL_LAST_DONE-1]);
+      const cats     = (row[CONFIG.COL_CATS-1]||'').toLowerCase().split(' ').filter(Boolean);
+      const oneOff   = (row[CONFIG.COL_ONEOFF-1]||'').trim()==='1';
+      const sheetRow = CONFIG.DATA_START_ROW+i;
+      const days     = lastDone ? (Date.now()-lastDone.getTime())/86400000 : Infinity;
+      const ratio    = urgencyRatio(minDays, maxDays, days);
+      return {name,minDays,maxDays,lastDone,cats,oneOff,sheetRow,days,ratio};
+    });
+}
+
+// ─── Load data ────────────────────────────────────────────────────────────
+async function loadData(forceRefresh=false) {
+  // Purge expired snooze
+  const _sn=getSnoozed(); // auto-purges on read
+
+  document.getElementById('home-content').innerHTML='<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+
+  // Guard: if ritual sheet not configured, show setup message
+  if (CONFIG.SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) {
+    document.getElementById('home-content').innerHTML=
+      '<div class="error-msg" style="padding:32px 20px;text-align:center;color:var(--muted);line-height:1.8">'+
+      '<div style="font-size:32px;margin-bottom:12px">⚙️</div>'+
+      '<strong style="color:var(--ink);font-size:16px">Setup required</strong><br><br>'+
+      'Open <code>ritual.html</code> and fill in<br>'+
+      '<code>CONFIG.SHEET_ID</code> with your ritual sheet ID<br>'+
+      '<code>CONFIG.API_KEY</code> with your API key<br>'+
+      '<code>OAUTH_CLIENT_ID</code> with your OAuth client ID'+
+      '</div>';
+    return;
+  }
+
+  if (forceRefresh) bustLegendCache();
+  const cachedLegend=loadLegendCache();
+
+  try {
+    if (cachedLegend) {
+      categories=cachedLegend;
+      const range=encodeURIComponent(`${CONFIG.SHEET_NAME}!A${CONFIG.DATA_START_ROW}:F`);
+      const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+      const res=await fetch(url);
+      const data=await res.json();
+      if (data.error) throw new Error(data.error.message);
+      allTasks=parseTaskRows(data.values||[]);
+    } else {
+      const range=encodeURIComponent(`${CONFIG.SHEET_NAME}!A${CONFIG.DATA_START_ROW}:I`);
+      const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+      const res=await fetch(url);
+      const data=await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const rows=data.values||[];
+      categories=parseLegend(rows);
+      saveLegendCache(categories);
+      allTasks=parseTaskRows(rows);
+    }
+
+    // Sanity check: if we got categories but none match any task's cats array,
+    // we may be reading the wrong sheet
+    if (categories.length>0 && allTasks.length>0) {
+      const hasMatch=allTasks.some(t=>t.cats.some(c=>categories.find(cat=>cat.code===c)));
+      if (!hasMatch) {
+        showToast('⚠️ Check CONFIG.SHEET_ID — may be pointing to wrong sheet',4000);
+      }
+    }
+
+    renderHome();
+    renderStreakBadge();
+    if (currentCategory) renderTasks();
+    checkWelcomeBack();
+    dailyRegen();
+    fetchHouseHealth();
+  } catch(e) {
+    document.getElementById('home-content').innerHTML=
+      `<div class="error-msg">⚠️ Couldn't load<br>${e.message}<br><br>Check Sheet ID, API key,<br>and that the sheet is public.</div>`;
+  }
+}
+
+// ─── Render home ──────────────────────────────────────────────────────────
+function renderHome() {
+  const el=document.getElementById('home-content');
+
+  // Sort categories by urgency of their most overdue task
+  const sortedCats=[...categories].sort((a,b)=>{
+    const maxR=cat=>{
+      const rs=allTasks.filter(t=>t.cats.includes(cat.code)).map(t=>t.ratio);
+      return rs.length?Math.max(...rs):0;
+    };
+    return maxR(b)-maxR(a);
+  });
+
+  // Urgent ritual tasks (not done today, ratio >= 0.7, top 5)
+  const urgentTasks=[...allTasks]
+    .filter(t=>!isDoneToday(t.lastDone)&&!isSnoozed(t.sheetRow))
+    .sort((a,b)=>b.ratio-a.ratio)
+    .filter(t=>t.ratio>=0.7)
+    .slice(0,5);
+
+  // Done today
+  const doneToday=[...allTasks]
+    .filter(t=>isDoneToday(t.lastDone))
+    .sort((a,b)=>new Date(b.lastDone)-new Date(a.lastDone));
+
+  let html='';
+
+  // Game card
+  html+='<div id="game-card" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:12px"></div>';
+
+  // House health card
+  html+=`<div id="house-health-card" onclick="openChoresApp()" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">
+    <span style="font-size:26px">🏠</span>
+    <div style="flex:1">
+      <div style="font-size:15px;font-weight:600;font-family:'Playfair Display',serif">House health</div>
+      <div id="house-health-label" style="font-size:11px;color:var(--muted);margin-top:1px">Loading…</div>
+    </div>
+    <div id="house-health-icon" style="font-size:18px;flex-shrink:0">🏠</div>
+  </div>`;
+
+  // Urgent strip
+  if (urgentTasks.length>0) {
+    html+='<div class="section-label">Needs attention</div>';
+    html+='<div class="urgent-strip" id="urgent-strip"></div>';
+  }
+
+  // Category grid — ONLY ritual categories from the ritual sheet
+  if (sortedCats.length===0) {
+    html+='<div class="empty-state"><span class="e-icon">📋</span>No categories yet.<br><span style="font-size:12px;opacity:.6">Add entries to column I of your ritual sheet<br>e.g. <code>self = Self Care 🪥</code></span></div>';
+  } else {
+    html+='<div class="section-label" style="margin-top:16px">Categories</div>';
+    html+='<div class="category-grid" id="cat-grid">';
+    sortedCats.forEach(cat=>{
+      // Only count tasks that belong to this category
+      const catTasks=allTasks.filter(t=>t.cats.includes(cat.code));
+      const ratios=catTasks.map(t=>t.ratio);
+      const maxRatio=ratios.length?Math.max(...ratios):0;
+      const overdue=ratios.filter(r=>r>=1).length;
+      const due=ratios.filter(r=>r>=0.85&&r<1).length;
+      const fillColor=urgencyColor(maxRatio);
+      const fillPct=Math.min(maxRatio*100,100);
+      const cls=overdue?' has-overdue':due?' has-due':'';
+      const topTask=catTasks.sort((a,b)=>b.ratio-a.ratio)[0];
+      html+=`<div class="category-card${cls}" data-cat="${cat.code}" data-top-row="${topTask?topTask.sheetRow:''}" data-top-name="${topTask?topTask.name:''}">
+        ${overdue?`<div class="cat-badge" style="top:38px;right:10px">${overdue} due</div>`:''}
+        <span class="cat-emoji">${cat.emoji}</span>
+        <div class="cat-name">${cat.name}</div>
+        <div class="cat-stats">${catTasks.length} ritual${catTasks.length!==1?'s':''}</div>
+        <div style="display:flex;gap:4px;margin-top:6px">${renderRhythmDots(cat.code)}</div>
+        <div class="cat-urgency-bar"><div class="cat-urgency-fill" style="background:${fillColor}" data-target="${fillPct}%"></div></div>
+        ${topTask&&topTask.ratio>=0.7?`<div class="cat-hint">hold to mark "${topTask.name}" done</div>`:''}
+        <div class="cat-tap-btn" onclick="event.stopPropagation();showTasks('${cat.code}')">›</div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+
+  // Done today
+  if (doneToday.length>0) {
+    html+='<div class="section-label" style="margin-top:16px">Done today</div>';
+    html+='<div class="done-today-strip">';
+    doneToday.forEach(t=>{
+      const time=t.lastDone?new Date(t.lastDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+      html+=`<div class="done-today-row">
+        <span class="done-today-check">✓</span>
+        <span class="done-today-name">${t.name}</span>
+        <span class="done-today-time">${time}</span>
+      </div>`;
+    });
+    html+='</div>';
+  }
+
+  el.innerHTML=html;
+
+  // Render game card now element exists in DOM
+  renderGameCard();
+
+  // Populate urgent strip — ritual tasks only
+  const strip=el.querySelector('#urgent-strip');
+  if (strip) {
+    urgentTasks.forEach(t=>{
+      const color=urgencyColor(t.ratio);
+      const width=Math.min(t.ratio*100,100)+'%';
+      const catLabels=t.cats.map(c=>catEmoji(c)+' '+catName(c)).join(' · ');
+      const wrap=document.createElement('div'); wrap.className='task-card-wrap';
+      const bgDone=document.createElement('div'); bgDone.className='swipe-bg-done'; bgDone.innerHTML='✓';
+      const bgSnooze=document.createElement('div'); bgSnooze.className='swipe-bg-snooze'; bgSnooze.innerHTML='🌙';
+      const card=document.createElement('div');
+      card.className='urgent-card';
+      card.dataset.urgency=urgencyLevel(t.ratio);
+      card.dataset.row=t.sheetRow;
+      card.style.cssText='touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1;border-radius:14px;overflow:hidden';
+      card.innerHTML=`
+        <div class="urgent-inner">
+          <div class="urgent-meta">
+            <div class="urgent-name">${t.name}</div>
+            <div class="urgent-cat">${catLabels}</div>
+          </div>
+        </div>
+        <div class="urgent-last">${relativeTime(t.lastDone)}</div>
+        <div class="urgent-bar"><div class="urgent-fill" style="background:${color}" data-target="${width}"></div></div>`;
+      wrap.appendChild(bgDone); wrap.appendChild(bgSnooze); wrap.appendChild(card);
+      strip.appendChild(wrap);
+      attachHomeSwipe(card, bgDone, bgSnooze, t.sheetRow);
+    });
+  }
+
+  // Animate bars
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    el.querySelectorAll('[data-target]').forEach(el=>{ el.style.width=el.dataset.target; });
+  }));
+
+  // Category card events
+  el.querySelectorAll('.category-card').forEach(card=>attachCatCardEvents(card));
+
+  // Update done count badge
+  const countEl=document.getElementById('header-done-count');
+  if (countEl) {
+    const n=getDoneTodayCount();
+    countEl.textContent=n>0?`${n} done today`:'Personal tracker';
+  }
+}
+
+// ─── Render tasks (category view) ────────────────────────────────────────
+function renderTasks() {
+  const list=document.getElementById('task-list');
+  list.innerHTML='<div class="swipe-hint">← swipe left to done · quiet right 🌙</div>';
+
+  // Only show tasks for the current ritual category
+  const catTasks=allTasks.filter(t=>t.cats.includes(currentCategory));
+  const filtered=catTasks
+    .filter(t=>{
+      if (isSnoozed(t.sheetRow)) return false;
+      if (isDoneToday(t.lastDone)) return false;
+      const daysUntilDue=t.maxDays-t.days;
+      return daysUntilDue<=filterDays||t.ratio>=1;
+    })
+    .sort((a,b)=>b.ratio-a.ratio);
+
+  if (!filtered.length) {
+    const hasDone=catTasks.some(t=>isDoneToday(t.lastDone));
+    list.innerHTML+=`<div class="empty-state"><span class="e-icon">${hasDone?'🎉':'✓'}</span>${hasDone?'All done for today!':'Nothing due in this window.'}</div>`;
+    return;
+  }
+
+  filtered.forEach(task=>{
+    const ratio=task.ratio;
+    const color=urgencyColor(ratio);
+    const width=Math.min(ratio*100,100)+'%';
+    const wrap=document.createElement('div'); wrap.className='task-card-wrap';
+    const bgDone=document.createElement('div'); bgDone.className='swipe-bg-done'; bgDone.innerHTML='✓';
+    const bgSnooze=document.createElement('div'); bgSnooze.className='swipe-bg-snooze'; bgSnooze.innerHTML='🌙';
+    const card=document.createElement('div');
+    card.className='task-card'; card.dataset.row=task.sheetRow;
+    card.style.cssText='touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1';
+    card.innerHTML=`
+      <div class="task-inner">
+        <div class="task-name">${task.name}</div>
+        ${task.oneOff?'<div class="one-off-badge">✦ One-off</div>':''}
+      </div>
+      <div class="task-last">${relativeTime(task.lastDone)}</div>
+      <div class="task-bar"><div class="task-fill" style="background:${color}" data-target="${width}"></div></div>`;
+    wrap.appendChild(bgDone); wrap.appendChild(bgSnooze); wrap.appendChild(card);
+    list.appendChild(wrap);
+    attachSwipe(card, bgDone, bgSnooze, task.sheetRow);
+  });
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    list.querySelectorAll('[data-target]').forEach(el=>{ el.style.width=el.dataset.target; });
+  }));
+}
+
+// ─── Swipe handlers ───────────────────────────────────────────────────────
+function attachHomeSwipe(card, bgDone, bgSnooze, sheetRow) {
+  let startX=0,startY=0,dx=0,tracking=false;
+  const THR=90;
+  card.addEventListener('touchstart',e=>{
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    tracking=true; dx=0;
+  },{passive:true});
+  card.addEventListener('touchmove',e=>{
+    if (!tracking) return;
+    const mx=e.touches[0].clientX-startX, my=e.touches[0].clientY-startY;
+    if (Math.abs(my)>Math.abs(mx)+10) { tracking=false; card.style.transform=''; bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible'); return; }
+    dx=Math.max(-140,Math.min(140,mx));
+    card.style.transform=`translateX(${dx}px)`;
+    bgDone.classList.toggle('visible',dx<-30);
+    bgSnooze.classList.toggle('visible',dx>30);
+  },{passive:true});
+  card.addEventListener('touchend',()=>{
+    if (!tracking) return; tracking=false;
+    bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible');
+    if (dx<=-THR) {
+      card.style.transform='translateX(-110%)'; card.style.opacity='0';
+      if (navigator.vibrate) navigator.vibrate(40);
+      markDoneHome(sheetRow, null, card.querySelector('.urgent-name')?.textContent||'');
+    } else if (dx>=THR) {
+      card.style.transform='translateX(110%)'; card.style.opacity='0';
+      if (navigator.vibrate) navigator.vibrate(20);
+      snoozeTask(sheetRow);
+    } else {
+      card.style.transform='';
+    }
+  });
+}
+
+function attachSwipe(card, bgDone, bgSnooze, sheetRow) {
+  let startX=0,startY=0,dx=0,tracking=false;
+  const THR=90;
+  card.addEventListener('touchstart',e=>{
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    tracking=true; dx=0;
+  },{passive:true});
+  card.addEventListener('touchmove',e=>{
+    if (!tracking) return;
+    const mx=e.touches[0].clientX-startX, my=e.touches[0].clientY-startY;
+    if (Math.abs(my)>Math.abs(mx)+10) { tracking=false; card.style.transform=''; bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible'); return; }
+    dx=Math.max(-140,Math.min(140,mx));
+    card.style.transform=`translateX(${dx}px)`;
+    bgDone.classList.toggle('visible',dx<-30);
+    bgSnooze.classList.toggle('visible',dx>30);
+  },{passive:true});
+  card.addEventListener('touchend',()=>{
+    if (!tracking) return; tracking=false;
+    bgDone.classList.remove('visible'); bgSnooze.classList.remove('visible');
+    if (dx<=-THR) {
+      card.style.transform='translateX(-110%)'; card.style.opacity='0';
+      if (navigator.vibrate) navigator.vibrate(40);
+      addXP(XP_RITUAL_TASK); addHP(HP_RITUAL_TASK);
+      setTimeout(renderGameCard,150);
+      markDoneTask(sheetRow, null);
+    } else if (dx>=THR) {
+      card.style.transform='translateX(110%)'; card.style.opacity='0';
+      if (navigator.vibrate) navigator.vibrate(20);
+      snoozeTask(sheetRow);
+    } else {
+      card.style.transform='';
+    }
+  });
+}
+
+function attachCatCardEvents(card) {
+  let pressTimer=null, pressing=false;
+  const startPress=(e)=>{
+    pressing=true; card.classList.add('long-press-active');
+    pressTimer=setTimeout(()=>{
+      if (!pressing) return;
+      const topRow=card.dataset.topRow, topName=card.dataset.topName;
+      if (!topRow||!topName) { showToast('No tasks due in this category'); card.classList.remove('long-press-active'); return; }
+      const lp=document.getElementById('lp-confirm');
+      lp.innerHTML=`Mark <strong>${topName}</strong> done?
+        <button onclick="markDoneHome(${topRow},null,'${topName.replace(/'/g,"\\'")}');document.getElementById('lp-confirm').innerHTML=''" style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">✓ Yes</button>
+        <button onclick="document.getElementById('lp-confirm').innerHTML=''" style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">Cancel</button>`;
+      card.classList.remove('long-press-active');
+    },600);
+  };
+  const endPress=()=>{ pressing=false; clearTimeout(pressTimer); card.classList.remove('long-press-active'); };
+  card.addEventListener('mousedown',startPress); card.addEventListener('touchstart',startPress,{passive:true});
+  card.addEventListener('mouseup',endPress); card.addEventListener('touchend',endPress);
+  card.addEventListener('mouseleave',endPress); card.addEventListener('touchcancel',endPress);
+  card.addEventListener('click',()=>{ if (!pressTimer) return; showTasks(card.dataset.cat); });
+}
+
+// ─── Mark done ────────────────────────────────────────────────────────────
+async function markDoneHome(sheetRow, btn, taskName) {
+  if (btn) btn.disabled=true;
+  const now=new Date(), value=formatDate(now);
+  const range=`${CONFIG.SHEET_NAME}!${colLetter(CONFIG.COL_LAST_DONE)}${sheetRow}`;
+
+  // Apply locally immediately
+  applyDoneLocally(sheetRow, now, btn);
+
+  // Award XP + HP
+  addXP(XP_RITUAL_TASK);
+  addHP(HP_RITUAL_TASK);
+  setTimeout(renderGameCard, 150);
+
+  const doSave=async()=>{
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+    try {
+      const res=await fetch(url,{
+        method:'PUT',
+        headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'},
+        body:JSON.stringify({values:[[value]]}),
+      });
+      const data=await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const task=allTasks.find(t=>t.sheetRow===sheetRow);
+      if (task?.oneOff) setTimeout(()=>archiveAndDeleteOneOff(sheetRow,task.name,task.cats,now),1500);
+    } catch(e) { showToast('Save failed — '+e.message); if(btn)btn.disabled=false; }
+  };
+
+  if (isTokenValid()) doSave();
+  else { pendingWrite={customCallback:doSave}; initOAuth(); }
+}
+
+async function markDoneTask(sheetRow, btn) {
+  if (btn) btn.disabled=true;
+  const now=new Date(), value=formatDate(now);
+  const range=`${CONFIG.SHEET_NAME}!${colLetter(CONFIG.COL_LAST_DONE)}${sheetRow}`;
+  applyDoneLocally(sheetRow, now, btn);
+  if (isTokenValid()) await writeToSheet(range, value, btn, sheetRow, now, false);
+  else { pendingWrite={range,value,btn,sheetRow,timestamp:now,isHome:false}; initOAuth(); }
+}
+
+function applyDoneLocally(sheetRow, timestamp, btn) {
+  const task=allTasks.find(t=>t.sheetRow===sheetRow);
+  const urgentBefore=allTasks.filter(t=>t.ratio>=0.75&&!isSnoozed(t.sheetRow)).length;
+  if (task) { task.lastDone=timestamp; task.days=0; task.ratio=0; }
+  recordStreakDay();
+  if (task) task.cats.forEach(c=>recordRhythm(c));
+  if (btn) btn.disabled=true;
+  patchHomeAfterDone(sheetRow, timestamp);
+  checkUrgentClear(urgentBefore);
+}
+
+function patchHomeAfterDone(sheetRow, timestamp) {
+  const homeEl=document.getElementById('home-content'); if (!homeEl) return;
+  // Remove urgent card
+  const urgentCard=homeEl.querySelector(`.urgent-card[data-row="${sheetRow}"]`);
+  if (urgentCard) {
+    urgentCard.style.transition='opacity .3s,transform .3s';
+    urgentCard.style.opacity='0'; urgentCard.style.transform='translateX(20px)';
+    setTimeout(()=>{
+      urgentCard.closest('.task-card-wrap')?.remove();
+      const strip=homeEl.querySelector('#urgent-strip');
+      if (strip&&!strip.children.length) { strip.remove(); homeEl.querySelector('.section-label')?.remove(); }
+    },350);
+  }
+  // Add to done-today
+  const task=allTasks.find(t=>t.sheetRow===sheetRow); if (!task) return;
+  let doneStrip=homeEl.querySelector('.done-today-strip');
+  if (!doneStrip) {
+    const lbl=document.createElement('div'); lbl.className='section-label'; lbl.style.marginTop='16px';
+    lbl.textContent='Done today'; homeEl.appendChild(lbl);
+    doneStrip=document.createElement('div'); doneStrip.className='done-today-strip'; homeEl.appendChild(doneStrip);
+  }
+  const time=new Date(timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const row=document.createElement('div'); row.className='done-today-row';
+  row.innerHTML=`<span class="done-today-check">✓</span><span class="done-today-name">${task.name}</span><span class="done-today-time">${time}</span>`;
+  doneStrip.insertBefore(row, doneStrip.firstChild);
+  // Update count badge
+  const countEl=document.getElementById('header-done-count');
+  if (countEl) { const n=getDoneTodayCount(); countEl.textContent=n>0?`${n} done today`:'Personal tracker'; }
+}
+
+async function writeToSheet(range, value, btn, sheetRow, timestamp, isHome) {
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+  try {
+    const res=await fetch(url,{method:'PUT',headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({values:[[value]]})});
+    const data=await res.json();
+    if (data.error) throw new Error(data.error.message);
+    applyDoneLocally(sheetRow, timestamp, btn);
+    const task=allTasks.find(t=>t.sheetRow===sheetRow);
+    if (task?.oneOff) setTimeout(()=>archiveAndDeleteOneOff(sheetRow,task.name,task.cats,timestamp),1500);
+  } catch(e) { showToast('Save failed — '+e.message); if(btn)btn.disabled=false; }
+}
+
+async function archiveAndDeleteOneOff(sheetRow, taskName, taskCats, completedAt) {
+  try {
+    const catLabels=taskCats.map(c=>catName(c)).filter(Boolean).join(', ');
+    const archiveRange=encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
+    const archiveUrl=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${archiveRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+    await fetch(archiveUrl,{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'},
+      body:JSON.stringify({values:[[taskName,formatDate(completedAt),catLabels]]}),
+    });
+    // Delete row
+    const metaUrl=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?key=${CONFIG.API_KEY}`;
+    const meta=await (await fetch(metaUrl)).json();
+    const sheetId=meta.sheets?.find(s=>s.properties.title===CONFIG.SHEET_NAME)?.properties?.sheetId??0;
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`,{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'},
+      body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId,dimension:'ROWS',startIndex:sheetRow-1,endIndex:sheetRow}}}]}),
+    });
+    allTasks=allTasks.filter(t=>t.sheetRow!==sheetRow);
+    showToast(`"${taskName}" archived ✓`);
+    renderHome();
+  } catch(e) { showToast('Archive failed: '+e.message); }
+}
+
+// ─── Streak / welcome ─────────────────────────────────────────────────────
+function checkUrgentClear(prevCount) {
+  const now=allTasks.filter(t=>t.ratio>=0.75&&!isSnoozed(t.sheetRow)).length;
+  if (prevCount>0&&now===0) {
+    burstParticles(innerWidth/2,innerHeight*.4,50);
+    setTimeout(()=>showToast('All caught up! 🎉'),300);
+  }
+}
+
+function checkWelcomeBack() {
+  const lastOpen=localStorage.getItem('ritual_last_open');
+  const today=new Date().toDateString();
+  const ds=lastOpen?Math.floor((Date.now()-new Date(lastOpen).getTime())/86400000):0;
+  localStorage.setItem('ritual_last_open', new Date().toISOString());
+  if (ds>=2) {
+    const overdue=allTasks.filter(t=>t.ratio>=1).length;
+    if (overdue>0) setTimeout(()=>showToast(`Welcome back! ${overdue} ritual${overdue!==1?'s':''} need attention`),600);
+  }
+}
+
+// ─── Add task ─────────────────────────────────────────────────────────────
+function openAddTask(preCatCode) {
+  const container=document.getElementById('new-cat-checks');
+  container.innerHTML='';
+  categories.forEach(cat=>{
+    const label=document.createElement('label');
+    label.className='cat-check-label';
+    const checked=preCatCode&&cat.code===preCatCode?'checked':'';
+    label.innerHTML=`<input type="checkbox" value="${cat.code}" ${checked}> ${cat.emoji} ${cat.name}`;
+    container.appendChild(label);
+  });
+  document.getElementById('add-overlay').classList.add('open');
+  document.getElementById('add-sheet').classList.add('open');
+  setTimeout(()=>document.getElementById('new-name').focus(),400);
+}
+
+function closeAddTask() {
+  document.getElementById('add-overlay').classList.remove('open');
+  document.getElementById('add-sheet').classList.remove('open');
+}
+
+async function submitNewTask() {
+  const name=document.getElementById('new-name').value.trim();
+  const min=parseFloat(document.getElementById('new-min').value);
+  const max=parseFloat(document.getElementById('new-max').value);
+  const oneOff=document.getElementById('new-oneoff').checked;
+  const cats=Array.from(document.querySelectorAll('#new-cat-checks input:checked')).map(cb=>cb.value);
+  if (!name) { showToast('Please enter a name'); return; }
+  if (!oneOff&&(!min||!max)) { showToast('Please enter min and max days'); return; }
+  if (!oneOff&&min>max) { showToast('Min must be ≤ max days'); return; }
+  const btn=document.getElementById('add-submit-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  const doAppend=async()=>{
+    const range=encodeURIComponent(`${CONFIG.SHEET_NAME}!A:F`);
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+    try {
+      await fetch(url,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'},
+        body:JSON.stringify({values:[[name,oneOff?1:min,oneOff?1:max,'',cats.join(' '),oneOff?'1':'']]}),
+      });
+      closeAddTask();
+      document.getElementById('new-name').value='';
+      document.getElementById('new-min').value='';
+      document.getElementById('new-max').value='';
+      document.getElementById('new-oneoff').checked=false;
+      btn.disabled=false; btn.textContent='Add ritual';
+      showToast(`"${name}" added ✓`);
+      bustLegendCache();
+      loadData(true);
+    } catch(e) { showToast('Failed: '+e.message); btn.disabled=false; btn.textContent='Add ritual'; }
+  };
+  if (isTokenValid()) doAppend();
+  else { pendingWrite={customCallback:doAppend}; initOAuth(); }
+}
+
+// ─── Past one-offs ────────────────────────────────────────────────────────
+async function openPastOneOffs() {
+  document.getElementById('past-overlay').classList.add('open');
+  document.getElementById('past-sheet').classList.add('open');
+  const container=document.getElementById('past-list');
+  container.innerHTML='<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+  try {
+    const range=encodeURIComponent(`${CONFIG.ARCHIVE_SHEET}!A:C`);
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const data=await (await fetch(url)).json();
+    if (data.error) throw new Error(data.error.message);
+    const rows=(data.values||[]).slice(1).reverse();
+    if (!rows.length) { container.innerHTML='<div class="empty-state" style="padding:40px 0">No completed one-offs yet.</div>'; return; }
+    container.innerHTML=rows.map(row=>{
+      const name=row[0]||'', date=row[1]||'', cats=row[2]||'';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:500;color:var(--ink)">${name}</div>
+          ${cats?`<div style="font-size:11px;color:var(--muted);margin-top:2px">📂 ${cats}</div>`:''}
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);text-align:right">${date}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { container.innerHTML=`<div class="error-msg">Failed: ${e.message}</div>`; }
+}
+
+function closePastOneOffs() {
+  document.getElementById('past-overlay').classList.remove('open');
+  document.getElementById('past-sheet').classList.remove('open');
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────
+function updateDoneTodayBadge() {
+  const el=document.getElementById('done-today-count');
+  const n=getDoneTodayCount();
+  if (el) el.textContent=n>0?`${n} done today`:'Personal tracker';
+}
+
+function updateLandingGreeting() {
+  const el=document.getElementById('landing-greeting');
+  if (el) el.textContent=getGreeting()+' — your rituals are waiting.';
+}
 
 function beginRitual() {
   burstParticles(innerWidth/2, innerHeight*0.55, 45);
-  const ls = document.getElementById('landing-screen');
+  const ls=document.getElementById('landing-screen');
   ls.classList.add('hide');
-  setTimeout(() => {
-    ls.style.display = 'none';
+  setTimeout(()=>{
+    ls.style.display='none';
     document.getElementById('view-home').classList.add('active');
     if (!isTokenValid()) initOAuth();
     loadData();
-  }, 400);
+  },400);
 }
 
-function showHowTo() {
-  document.getElementById('howto-screen').classList.add('show');
+function showHome() {
+  document.getElementById('view-home').classList.add('active');
+  document.getElementById('view-tasks').classList.remove('active');
+  currentCategory=null;
+  renderHome();
 }
 
-function closeHowTo() {
-  document.getElementById('howto-screen').classList.remove('show');
+function showHowTo()  { document.getElementById('howto-screen').classList.add('show'); }
+function closeHowTo() { document.getElementById('howto-screen').classList.remove('show'); }
+
+function showTasks(catCode) {
+  currentCategory=catCode;
+  filterDays=catFilters[catCode]||4;
+  document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-tasks').classList.add('active');
+  document.getElementById('task-view-emoji').textContent=catEmoji(catCode);
+  document.getElementById('task-view-title').textContent=catName(catCode);
+  document.querySelectorAll('.filter-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.days)===filterDays);
+  });
+  renderTasks();
 }
 
-
-// ─── Streak tracking ──────────────────────────────
-const STREAK_KEY = 'ritual_streak_v1';
-
-function getStreakData() {
-  try { return JSON.parse(localStorage.getItem(STREAK_KEY)) || { current:0, best:0, lastDate:null }; }
-  catch { return { current:0, best:0, lastDate:null }; }
+function setFilter(days) {
+  filterDays=days;
+  if (currentCategory) catFilters[currentCategory]=days;
+  document.querySelectorAll('.filter-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.days)===days);
+  });
+  renderTasks();
 }
 
-function recordStreakDay() {
-  const data = getStreakData();
-  const today = new Date().toDateString();
-  if (data.lastDate === today) return; // already counted today
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
-  data.current  = data.lastDate === yesterday ? data.current + 1 : 1;
-  data.best      = Math.max(data.best, data.current);
-  data.lastDate  = today;
-  localStorage.setItem(STREAK_KEY, JSON.stringify(data));
-}
+// ─── Init ─────────────────────────────────────────────────────────────────
+// Pull-to-refresh guard
+(function(){
+  let startY=0, pulling=false, transform='';
+  document.addEventListener('touchstart',e=>{
+    if (window.scrollY===0) { startY=e.touches[0].clientY; pulling=true; }
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if (!pulling) return;
+    const dy=e.touches[0].clientY-startY;
+    if (dy>60) { e.preventDefault(); }
+  },{passive:false});
+  document.addEventListener('touchend',()=>{ pulling=false; });
+})();
 
-function renderStreakBadge() {
-  const el = document.getElementById('streak-badge');
-  if (!el) return;
-  const { current, best } = getStreakData();
-  if (current < 1) { el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  el.innerHTML = `<span style="font-size:14px">🔥</span><span>${current} day streak${best > current ? ` · best ${best}` : current >= best && current > 1 ? ' · best ever! 🏆' : ''}</span>`;
-}
+// Click outside long-press confirm to dismiss
+document.addEventListener('click',e=>{
+  const lp=document.getElementById('lp-confirm');
+  if (lp&&!lp.contains(e.target)) lp.innerHTML='';
+});
 
-// ─── Done today count ──────────────────────────────
-function getDoneTodayCount() {
-  return allTasks.filter(t => {
-    if (!t.lastDone) return false;
-    const d = new Date(t.lastDone), n = new Date();
-    return d.getDate()===n.getDate() && d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear();
-  }).length;
-}
-
-function updateDoneTodayBadge() {
-  const el = document.getElementById('done-today-count');
-  const n  = getDoneTodayCount();
-  if (el) el.textContent = n > 0 ? `${n} done today` : 'Personal tracker';
-}
-
-// ─── Welcome back ──────────────────────────────────
-function checkWelcomeBack() {
-  const lastOpen = localStorage.getItem('ritual_last_open');
-  const today    = new Date().toDateString();
-  const daysSince = lastOpen ? Math.floor((Date.now() - new Date(lastOpen).getTime()) / 86400000) : 0;
-  localStorage.setItem('ritual_last_open', new Date().toISOString());
-  if (daysSince >= 2) {
-    // Count overdue
-    const overdue = allTasks.filter(t => {
-      const r = t.lastDone ? Math.min((Date.now()-t.lastDone.getTime())/86400000/t.maxDays, 1.8) : 1.5;
-      return r >= 1;
-    }).length;
-    if (overdue > 0) {
-      setTimeout(() => showToast(`Welcome back ✨ ${overdue} ritual${overdue!==1?'s':''} need attention`), 600);
-    }
-  }
-}
-
-// ─── Time-of-day greeting ───────────────────────────
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-
-
-// ─── Celebrate when urgent strip clears ───────────
-function checkUrgentClear(prevCount) {
-  const now = allTasks.filter(t => {
-    const r = t.lastDone ? Math.min((Date.now()-t.lastDone.getTime())/86400000/(t.maxDays||1),1.8):1.5;
-    return r >= 0.75 && !isSnoozed(t.sheetRow);
-  }).length;
-  if (prevCount > 0 && now === 0) {
-    burstParticles(innerWidth/2, innerHeight*0.4, 50);
-    setTimeout(() => showToast('All caught up! 🎉'), 300);
-  }
-}
-
-// ─── Weekly rhythm dots ────────────────────────────
-// Returns array of 7 booleans — did the cat have a completion each day this week?
-function getWeeklyRhythm(catCode) {
-  const RHYTHM_KEY = 'ritual_rhythm_v1';
-  try {
-    const data = JSON.parse(localStorage.getItem(RHYTHM_KEY)) || {};
-    return data[catCode] || [false,false,false,false,false,false,false];
-  } catch { return [false,false,false,false,false,false,false]; }
-}
-
-function recordRhythm(catCode) {
-  const RHYTHM_KEY = 'ritual_rhythm_v1';
-  try {
-    const data   = JSON.parse(localStorage.getItem(RHYTHM_KEY)) || {};
-    const rhythm = data[catCode] || [false,false,false,false,false,false,false];
-    const dayOfWeek = new Date().getDay();
-    rhythm[dayOfWeek] = true;
-    data[catCode] = rhythm;
-    localStorage.setItem(RHYTHM_KEY, JSON.stringify(data));
-  } catch {}
-}
-
-function renderRhythmDots(catCode) {
-  const rhythm = getWeeklyRhythm(catCode);
-  const days   = ['S','M','T','W','T','F','S'];
-  const today  = new Date().getDay();
-  return days.map((d,i) => {
-    const isToday  = i === today;
-    const done     = rhythm[i];
-    const opacity  = done ? '1' : isToday ? '0.5' : '0.2';
-    const bg       = done ? 'var(--c-fresh)' : isToday ? 'var(--ink-mute)' : 'var(--border)';
-    return `<div title="${d}" style="width:6px;height:6px;border-radius:50%;background:${bg};opacity:${opacity};flex-shrink:0"></div>`;
-  }).join('');
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+updateLandingGreeting();
 
 </script>
-</body>
   </html>
