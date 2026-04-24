@@ -13,12 +13,12 @@
 <style>
   :root {
     --bg:        #0d0a12;
-    --surface:   #161220;
+    --surface:   #1a1428;
     --surface2:  #1e1828;
     --ink:       #e8e0f0;
     --ink-soft:  #7a6e8a;
     --ink-muted: #4a4058;
-    --border:    #332a45;
+    --border:    #3d3360;
     --accent:    #c084fc;
     --accent2:   #818cf8;
     --c-fresh:   #4ade80;
@@ -34,327 +34,327 @@
     color-scheme: dark;
   }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-font-family: ‘DM Sans’, sans-serif;
-background: var(–bg);
-color: var(–ink);
-height: 100dvh;
-overflow: hidden;
-}
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    height: 100dvh;
+    overflow: hidden;
+  }
 
-body::before {
-content: ‘’;
-position: fixed; inset: 0;
-background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
-pointer-events: none; z-index: 0; opacity: .5;
-}
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: .5;
+  }
 
-/* ── VIEWS ── */
-.view { display: none; }
-.view.active {
-display: flex; flex-direction: column;
-height: 100dvh;
-animation: fadeUp .25s ease;
-}
-.view.active.block { display: block; }
-@keyframes fadeUp {
-from { opacity: 0; transform: translateY(10px); }
-to   { opacity: 1; transform: translateY(0); }
-}
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active {
+    display: flex; flex-direction: column;
+    height: 100dvh;
+    animation: fadeUp .25s ease;
+  }
+  .view.active.block { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-/* ── HEADER ── */
-header {
-padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px 14px;
-display: flex; align-items: center; justify-content: space-between;
-flex-shrink: 0; z-index: 20;
-background: linear-gradient(to bottom, rgba(13,10,18,.97) 85%, transparent);
-}
-.wordmark {
-font-family: ‘Cinzel’, serif; font-size: 22px; font-weight: 700;
-letter-spacing: 3px; text-transform: uppercase;
-background: linear-gradient(135deg, var(–accent), var(–accent2));
--webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.header-sub { font-size: 10px; color: var(–ink-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
-.back-btn {
-background: none; border: 1px solid var(–border); border-radius: 10px;
-padding: 6px 12px; color: var(–ink-soft); font-family: ‘DM Sans’, sans-serif;
-font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .15s;
-}
-.back-btn:active { transform: scale(.93); }
-.back-btn svg { width: 12px; height: 12px; }
-.icon-btn {
-background: none; border: 1px solid var(–border); border-radius: 50%;
-width: 36px; height: 36px; display: grid; place-items: center;
-cursor: pointer; color: var(–ink-soft); transition: all .2s; flex-shrink: 0;
-}
-.icon-btn:active { transform: scale(.88); }
-.icon-btn.spin svg { transition: transform .4s; }
-.icon-btn.spin:active svg { transform: rotate(180deg); }
-.icon-btn svg { width: 15px; height: 15px; }
-.header-right { display: flex; gap: 8px; align-items: center; }
+  /* ── HEADER ── */
+  header {
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; z-index: 20;
+    background: linear-gradient(to bottom, rgba(13,10,18,.97) 85%, transparent);
+  }
+  .wordmark {
+    font-family: 'Cinzel', serif; font-size: 22px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .header-sub { font-size: 10px; color: var(--ink-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+  .back-btn {
+    background: none; border: 1px solid var(--border); border-radius: 10px;
+    padding: 6px 12px; color: var(--ink-soft); font-family: 'DM Sans', sans-serif;
+    font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .15s;
+  }
+  .back-btn:active { transform: scale(.93); }
+  .back-btn svg { width: 12px; height: 12px; }
+  .icon-btn {
+    background: none; border: 1px solid var(--border); border-radius: 50%;
+    width: 36px; height: 36px; display: grid; place-items: center;
+    cursor: pointer; color: var(--ink-soft); transition: all .2s; flex-shrink: 0;
+  }
+  .icon-btn:active { transform: scale(.88); }
+  .icon-btn.spin svg { transition: transform .4s; }
+  .icon-btn.spin:active svg { transform: rotate(180deg); }
+  .icon-btn svg { width: 15px; height: 15px; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
 
-/* ── SECTION LABELS ── */
-.section-label {
-padding: 4px 20px 10px; font-size: 10px;
-color: var(–ink-muted); letter-spacing: 2px; text-transform: uppercase;
-}
+  /* ── SECTION LABELS ── */
+  .section-label {
+    padding: 4px 20px 10px; font-size: 10px;
+    color: var(--ink-muted); letter-spacing: 2px; text-transform: uppercase;
+  }
 
-/* ── URGENT STRIP ── */
-.urgent-strip { padding: 0 16px 4px; display: flex; flex-direction: column; gap: 8px; }
-.urgent-card {
-background: var(–surface); border: 1px solid var(–border);
-border-radius: 14px; overflow: hidden;
-transition: transform .15s; position: relative;
-}
-.urgent-card:active { transform: scale(.985); }
-.urgent-card[data-urgency=“fresh”] { border-left: 3px solid var(–c-fresh); }
-.urgent-card[data-urgency=“ok”]    { border-left: 3px solid var(–c-ok); }
-.urgent-card[data-urgency=“soon”]  { border-left: 3px solid var(–c-soon); }
-.urgent-card[data-urgency=“due”]   { border-left: 3px solid var(–c-due); }
-.urgent-card[data-urgency=“over”]  { border-left: 3px solid var(–c-over); }
-.urgent-inner { display: flex; align-items: center; gap: 10px; padding: 10px 12px 6px; }
-.urgent-meta { flex: 1; }
-.urgent-name { font-size: 14px; font-weight: 500; color: var(–ink); }
-.urgent-cat  { font-size: 10px; color: var(–ink-muted); margin-top: 2px; letter-spacing: .3px; }
-.urgent-last { font-size: 11px; color: var(–ink-soft); padding: 0 12px 8px; font-weight: 300; }
-.urgent-bar  { height: 2px; background: var(–border); overflow: hidden; }
-.urgent-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
+  /* ── URGENT STRIP ── */
+  .urgent-strip { padding: 0 16px 4px; display: flex; flex-direction: column; gap: 8px; }
+  .urgent-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    transition: transform .15s; position: relative;
+  }
+  .urgent-card:active { transform: scale(.985); }
+  .urgent-card[data-urgency="fresh"] { border-left: 3px solid var(--c-fresh); }
+  .urgent-card[data-urgency="ok"]    { border-left: 3px solid var(--c-ok); }
+  .urgent-card[data-urgency="soon"]  { border-left: 3px solid var(--c-soon); }
+  .urgent-card[data-urgency="due"]   { border-left: 3px solid var(--c-due); }
+  .urgent-card[data-urgency="over"]  { border-left: 3px solid var(--c-over); }
+  .urgent-inner { display: flex; align-items: center; gap: 10px; padding: 10px 12px 6px; }
+  .urgent-meta { flex: 1; }
+  .urgent-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .urgent-cat  { font-size: 10px; color: var(--ink-muted); margin-top: 2px; letter-spacing: .3px; }
+  .urgent-last { font-size: 11px; color: var(--ink-soft); padding: 0 12px 8px; font-weight: 300; }
+  .urgent-bar  { height: 2px; background: var(--border); overflow: hidden; }
+  .urgent-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
 
-/* ── DONE TODAY ── */
-.done-today-strip { padding: 0 16px 4px; display: flex; flex-direction: column; gap: 6px; }
-.done-today-row {
-display: flex; align-items: center; gap: 10px;
-padding: 8px 12px;
-background: rgba(74,222,128,.06); border: 1px solid rgba(74,222,128,.15);
-border-radius: 12px; font-size: 13px; color: var(–ink-soft);
-}
-.done-today-check { color: var(–c-fresh); font-size: 14px; }
-.done-today-name { flex: 1; }
-.done-today-time { font-size: 11px; color: var(–ink-muted); }
+  /* ── DONE TODAY ── */
+  .done-today-strip { padding: 0 16px 4px; display: flex; flex-direction: column; gap: 6px; }
+  .done-today-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: rgba(74,222,128,.06); border: 1px solid rgba(74,222,128,.15);
+    border-radius: 12px; font-size: 13px; color: var(--ink-soft);
+  }
+  .done-today-check { color: var(--c-fresh); font-size: 14px; }
+  .done-today-name { flex: 1; }
+  .done-today-time { font-size: 11px; color: var(--ink-muted); }
 
-/* ── CATEGORY GRID ── */
-.category-grid {
-padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 80px);
-display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-}
-.category-card {
-background: var(–surface); border: 1px solid var(–border);
-border-radius: var(–radius); padding: 18px 14px 14px;
-transition: border-color .2s; position: relative; overflow: hidden;
--webkit-user-select: none; user-select: none;
-}
-.category-card::after {
-content: ‘’; position: absolute; inset: 0;
-background: linear-gradient(135deg, rgba(192,132,252,.05), transparent);
-pointer-events: none;
-}
-.category-card:active { transform: none; }
-.category-card.has-overdue { border-color: rgba(244,63,94,.4); }
-.category-card.has-due    { border-color: rgba(249,115,22,.35); }
-.category-card.long-press-active { transform: scale(.94); background: var(–surface2); }
-.cat-emoji { font-size: 26px; margin-bottom: 8px; display: block; }
-.cat-name  { font-family: ‘Cinzel’, serif; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(–ink); margin-bottom: 4px; }
-.cat-stats { font-size: 11px; color: var(–ink-muted); font-weight: 300; }
-.cat-urgency-bar  { height: 2px; border-radius: 2px; margin-top: 10px; background: var(–border); overflow: hidden; }
-.cat-urgency-fill { height: 100%; border-radius: 2px; width: 0%; transition: width .8s cubic-bezier(.25,.8,.25,1); }
-.cat-tap-btn {
-position: absolute; right: 10px; top: 10px;
-padding: 4px 10px; display: flex; align-items: center; justify-content: center;
-color: var(–ink-muted); font-size: 15px; font-weight: 400;
-background: var(–surface2); border: 1px solid var(–border);
-border-radius: 20px; cursor: pointer;
-transition: background .15s, color .15s, border-color .15s;
--webkit-user-select: none; user-select: none; touch-action: manipulation; z-index: 2;
-}
-.cat-tap-btn:active { background: var(–accent); color: white; border-color: var(–accent); }
-.cat-badge {
-position: absolute; top: 10px; right: 10px;
-background: var(–c-over); color: white;
-font-size: 10px; font-weight: 700; border-radius: 10px; padding: 2px 7px;
-}
-.cat-hint { font-size: 9px; color: var(–ink-muted); margin-top: 6px; letter-spacing: .5px; opacity: .6; }
+  /* ── CATEGORY GRID ── */
+  .category-grid {
+    padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 80px);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .category-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 14px 14px;
+    transition: border-color .2s; position: relative; overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  .category-card::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(192,132,252,.05), transparent);
+    pointer-events: none;
+  }
+  .category-card:active { transform: none; }
+  .category-card.has-overdue { border-color: rgba(244,63,94,.4); }
+  .category-card.has-due    { border-color: rgba(249,115,22,.35); }
+  .category-card.long-press-active { transform: scale(.94); background: var(--surface2); }
+  .cat-emoji { font-size: 26px; margin-bottom: 8px; display: block; }
+  .cat-name  { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--ink); margin-bottom: 4px; }
+  .cat-stats { font-size: 11px; color: var(--ink-muted); font-weight: 300; }
+  .cat-urgency-bar  { height: 2px; border-radius: 2px; margin-top: 10px; background: var(--border); overflow: hidden; }
+  .cat-urgency-fill { height: 100%; border-radius: 2px; width: 0%; transition: width .8s cubic-bezier(.25,.8,.25,1); }
+  .cat-tap-btn {
+    position: absolute; right: 10px; top: 10px;
+    padding: 4px 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--ink-muted); font-size: 15px; font-weight: 400;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    -webkit-user-select: none; user-select: none; touch-action: manipulation; z-index: 2;
+  }
+  .cat-tap-btn:active { background: var(--accent); color: white; border-color: var(--accent); }
+  .cat-badge {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--c-over); color: white;
+    font-size: 10px; font-weight: 700; border-radius: 10px; padding: 2px 7px;
+  }
+  .cat-hint { font-size: 9px; color: var(--ink-muted); margin-top: 6px; letter-spacing: .5px; opacity: .6; }
 
-/* ── TASK VIEW ── */
-.task-view-header { padding: 0 20px 10px; }
-.task-cat-title { font-family: ‘Cinzel’, serif; font-size: 20px; font-weight: 700; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
-.legend { display: flex; gap: 10px; padding: 0 16px 10px; flex-wrap: wrap; }
-.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(–ink-muted); letter-spacing: .3px; }
-.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.filter-bar { display: flex; gap: 8px; padding: 0 16px 14px; overflow-x: auto; scrollbar-width: none; }
-.filter-bar::-webkit-scrollbar { display: none; }
-.filter-btn {
-flex-shrink: 0; background: var(–surface); border: 1px solid var(–border);
-border-radius: 20px; padding: 5px 14px;
-font-family: ‘DM Sans’, sans-serif; font-size: 12px; font-weight: 500;
-color: var(–ink-soft); cursor: pointer; transition: all .15s; letter-spacing: .2px;
-}
-.filter-btn.active {
-background: linear-gradient(135deg, var(–accent), var(–accent2));
-color: white; border-color: transparent;
-}
+  /* ── TASK VIEW ── */
+  .task-view-header { padding: 0 20px 10px; }
+  .task-cat-title { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
+  .legend { display: flex; gap: 10px; padding: 0 16px 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--ink-muted); letter-spacing: .3px; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .filter-bar { display: flex; gap: 8px; padding: 0 16px 14px; overflow-x: auto; scrollbar-width: none; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 14px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    color: var(--ink-soft); cursor: pointer; transition: all .15s; letter-spacing: .2px;
+  }
+  .filter-btn.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white; border-color: transparent;
+  }
 
-/* ── TASK LIST ── */
-.task-list {
-padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 80px);
-display: flex; flex-direction: column; gap: 10px;
-}
+  /* ── TASK LIST ── */
+  .task-list {
+    padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 80px);
+    display: flex; flex-direction: column; gap: 10px;
+  }
 
-/* ── TASK CARD ── */
-.task-card-wrap { position: relative; border-radius: var(–radius); overflow: hidden; }
-.task-card {
-background: var(–surface); border: 1px solid var(–border);
-border-radius: var(–radius); overflow: hidden;
-transition: transform .05s, box-shadow .15s;
-position: relative; z-index: 1;
-touch-action: pan-y; -webkit-user-select: none; user-select: none;
-}
-.task-card[data-urgency=“fresh”] { border-left: 3px solid var(–c-fresh); }
-.task-card[data-urgency=“ok”]    { border-left: 3px solid var(–c-ok); }
-.task-card[data-urgency=“soon”]  { border-left: 3px solid var(–c-soon); }
-.task-card[data-urgency=“due”]   { border-left: 3px solid var(–c-due); }
-.task-card[data-urgency=“over”]  { border-left: 3px solid var(–c-over); }
-.task-inner { display: flex; align-items: center; gap: 12px; padding: 13px 13px 7px; }
-.task-info  { flex: 1; }
-.task-name  { font-size: 15px; font-weight: 500; line-height: 1.2; color: var(–ink); }
-.task-cats  { font-size: 10px; color: var(–ink-muted); margin-top: 3px; letter-spacing: .3px; }
-.task-last  { font-size: 11px; color: var(–ink-soft); padding: 0 13px 9px; font-weight: 300; }
-.urgency-bar  { height: 3px; background: var(–border); overflow: hidden; }
-.urgency-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
-.task-bar   { height: 3px; background: var(–border); overflow: hidden; }
-.task-fill  { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
-.swipe-hint { text-align: center; font-size: 10px; color: var(–ink-muted); padding: 0 0 10px; letter-spacing: .5px; opacity: .5; }
-.one-off-badge { font-size: 10px; color: #7a4fcf; background: rgba(122,79,207,.1); border-radius: 20px; padding: 2px 8px; display: inline-block; margin-top: 4px; }
+  /* ── TASK CARD ── */
+  .task-card-wrap { position: relative; border-radius: var(--radius); overflow: hidden; }
+  .task-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform .05s, box-shadow .15s;
+    position: relative; z-index: 1;
+    touch-action: pan-y; -webkit-user-select: none; user-select: none;
+  }
+  .task-card[data-urgency="fresh"] { border-left: 3px solid var(--c-fresh); }
+  .task-card[data-urgency="ok"]    { border-left: 3px solid var(--c-ok); }
+  .task-card[data-urgency="soon"]  { border-left: 3px solid var(--c-soon); }
+  .task-card[data-urgency="due"]   { border-left: 3px solid var(--c-due); }
+  .task-card[data-urgency="over"]  { border-left: 3px solid var(--c-over); }
+  .task-inner { display: flex; align-items: center; gap: 12px; padding: 13px 13px 7px; }
+  .task-info  { flex: 1; }
+  .task-name  { font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink); }
+  .task-cats  { font-size: 10px; color: var(--ink-muted); margin-top: 3px; letter-spacing: .3px; }
+  .task-last  { font-size: 11px; color: var(--ink-soft); padding: 0 13px 9px; font-weight: 300; }
+  .urgency-bar  { height: 3px; background: var(--border); overflow: hidden; }
+  .urgency-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
+  .task-bar   { height: 3px; background: var(--border); overflow: hidden; }
+  .task-fill  { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
+  .swipe-hint { text-align: center; font-size: 10px; color: var(--ink-muted); padding: 0 0 10px; letter-spacing: .5px; opacity: .5; }
+  .one-off-badge { font-size: 10px; color: #7a4fcf; background: rgba(122,79,207,.1); border-radius: 20px; padding: 2px 8px; display: inline-block; margin-top: 4px; }
 
-/* ── SWIPE BACKGROUNDS ── */
-.swipe-bg-done, .swipe-bg-snooze {
-position: absolute; top: 0; bottom: 0;
-display: flex; align-items: center;
-font-size: 18px; padding: 0 20px;
-opacity: 0; transition: opacity .15s;
-pointer-events: none; border-radius: var(–radius);
-}
-.swipe-bg-done   { right: 0; background: var(–c-fresh); color: white; justify-content: flex-end; }
-.swipe-bg-snooze { left: 0; background: var(–surface2); color: var(–ink-soft); justify-content: flex-start; }
-.swipe-bg-done.visible, .swipe-bg-snooze.visible { opacity: 1; }
+  /* ── SWIPE BACKGROUNDS ── */
+  .swipe-bg-done, .swipe-bg-snooze {
+    position: absolute; top: 0; bottom: 0;
+    display: flex; align-items: center;
+    font-size: 18px; padding: 0 20px;
+    opacity: 0; transition: opacity .15s;
+    pointer-events: none; border-radius: var(--radius);
+  }
+  .swipe-bg-done   { right: 0; background: var(--c-fresh); color: white; justify-content: flex-end; }
+  .swipe-bg-snooze { left: 0; background: var(--surface2); color: var(--ink-soft); justify-content: flex-start; }
+  .swipe-bg-done.visible, .swipe-bg-snooze.visible { opacity: 1; }
 
-/* ── LOADING / EMPTY / ERROR ── */
-.spinner { width: 28px; height: 28px; border: 2px solid var(–border); border-top-color: var(–accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 14px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-state, .empty-state { text-align: center; padding: 50px 24px; color: var(–ink-muted); font-size: 14px; line-height: 1.7; }
-.empty-state .e-icon { font-size: 36px; display: block; margin-bottom: 12px; opacity: .4; }
-.error-msg { color: var(–c-over); text-align: center; padding: 40px 24px; font-size: 13px; line-height: 1.7; }
+  /* ── LOADING / EMPTY / ERROR ── */
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state, .empty-state { text-align: center; padding: 50px 24px; color: var(--ink-muted); font-size: 14px; line-height: 1.7; }
+  .empty-state .e-icon { font-size: 36px; display: block; margin-bottom: 12px; opacity: .4; }
+  .error-msg { color: var(--c-over); text-align: center; padding: 40px 24px; font-size: 13px; line-height: 1.7; }
 
-/* ── BOTTOM SHEETS ── */
-.sheet-overlay {
-position: fixed; inset: 0; background: rgba(0,0,0,.65);
-z-index: 50; opacity: 0; pointer-events: none; transition: opacity .3s; backdrop-filter: blur(5px);
-}
-.sheet-overlay.open { opacity: 1; pointer-events: all; }
-.bottom-sheet {
-position: fixed; bottom: 0; left: 0; right: 0;
-background: var(–surface); border-radius: 24px 24px 0 0;
-border-top: 1px solid var(–border); z-index: 60;
-transform: translateY(100%);
-transition: transform .35s cubic-bezier(.32,0,.67,0);
-max-height: 92dvh; display: flex; flex-direction: column;
-}
-.bottom-sheet.open { transform: translateY(0); transition: transform .35s cubic-bezier(.22,1,.36,1); }
-.sheet-handle { width: 36px; height: 4px; background: var(–border); border-radius: 4px; margin: 12px auto 0; flex-shrink: 0; }
-.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; flex-shrink: 0; border-bottom: 1px solid var(–border); }
-.sheet-title { font-family: ‘Cinzel’, serif; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
-.sheet-close { background: none; border: 1px solid var(–border); border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; color: var(–ink-soft); font-size: 18px; line-height: 1; transition: all .15s; }
-.sheet-close:active { transform: scale(.88); }
-.sheet-body { overflow-y: auto; flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 20px); }
+  /* ── BOTTOM SHEETS ── */
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.65);
+    z-index: 50; opacity: 0; pointer-events: none; transition: opacity .3s; backdrop-filter: blur(5px);
+  }
+  .sheet-overlay.open { opacity: 1; pointer-events: all; }
+  .bottom-sheet {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-radius: 24px 24px 0 0;
+    border-top: 1px solid var(--border); z-index: 60;
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(.32,0,.67,0);
+    max-height: 92dvh; display: flex; flex-direction: column;
+  }
+  .bottom-sheet.open { transform: translateY(0); transition: transform .35s cubic-bezier(.22,1,.36,1); }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 12px auto 0; flex-shrink: 0; }
+  .sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .sheet-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
+  .sheet-close { background: none; border: 1px solid var(--border); border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); font-size: 18px; line-height: 1; transition: all .15s; }
+  .sheet-close:active { transform: scale(.88); }
+  .sheet-body { overflow-y: auto; flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 20px); }
 
-/* ── FORMS ── */
-.form-group { margin-bottom: 18px; }
-.form-label { display: block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(–ink-muted); margin-bottom: 8px; }
-.form-input { width: 100%; background: var(–bg); border: 1px solid var(–border); border-radius: 12px; padding: 12px 14px; font-family: ‘DM Sans’, sans-serif; font-size: 16px; color: var(–ink); outline: none; transition: border-color .15s; -webkit-appearance: none; appearance: none; }
-.form-input:focus { border-color: var(–accent); }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-hint { font-size: 11px; color: var(–ink-muted); margin-top: 5px; font-weight: 300; }
-.cat-checks { display: flex; flex-direction: column; gap: 8px; }
-.cat-check-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 10px 14px; background: var(–bg); border: 1px solid var(–border); border-radius: 12px; transition: border-color .15s; color: var(–ink); }
-.cat-check-label:has(input:checked) { border-color: var(–accent); background: rgba(192,132,252,.06); }
-.cat-check-label input[type=“checkbox”] { width: 17px; height: 17px; accent-color: var(–accent); cursor: pointer; flex-shrink: 0; }
-.submit-btn { width: 100%; background: linear-gradient(135deg, var(–accent), var(–accent2)); color: white; border: none; border-radius: 14px; padding: 15px; font-family: ‘DM Sans’, sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: opacity .15s, transform .1s; letter-spacing: .3px; }
-.submit-btn:active { transform: scale(.97); }
-.submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+  /* ── FORMS ── */
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); margin-bottom: 8px; }
+  .form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 16px; color: var(--ink); outline: none; transition: border-color .15s; -webkit-appearance: none; appearance: none; }
+  .form-input:focus { border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-hint { font-size: 11px; color: var(--ink-muted); margin-top: 5px; font-weight: 300; }
+  .cat-checks { display: flex; flex-direction: column; gap: 8px; }
+  .cat-check-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s; color: var(--ink); }
+  .cat-check-label:has(input:checked) { border-color: var(--accent); background: rgba(192,132,252,.06); }
+  .cat-check-label input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .submit-btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; border-radius: 14px; padding: 15px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: opacity .15s, transform .1s; letter-spacing: .3px; }
+  .submit-btn:active { transform: scale(.97); }
+  .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* ── TOAST & CONFIRM ── */
-#lp-confirm {
-position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); left: 50%;
-transform: translateX(-50%) translateY(20px);
-background: var(–surface2); color: var(–ink);
-border: 1px solid rgba(74,222,128,.3); padding: 12px 20px; border-radius: 16px;
-font-size: 13px; font-weight: 500;
-opacity: 0; z-index: 300; white-space: nowrap;
-transition: opacity .2s, transform .2s; text-align: center; line-height: 1.5;
-}
-#lp-confirm.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-#toast {
-position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); left: 50%;
-transform: translateX(-50%) translateY(80px);
-background: var(–surface2); color: var(–ink); border: 1px solid var(–border);
-padding: 10px 20px; border-radius: 40px; font-size: 13px; font-weight: 500;
-transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
-opacity: 0; z-index: 200; white-space: nowrap;
-}
-#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  /* ── TOAST & CONFIRM ── */
+  #lp-confirm {
+    position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); color: var(--ink);
+    border: 1px solid rgba(74,222,128,.3); padding: 12px 20px; border-radius: 16px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; z-index: 300; white-space: nowrap;
+    transition: opacity .2s, transform .2s; text-align: center; line-height: 1.5;
+  }
+  #lp-confirm.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast {
+    position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2); color: var(--ink); border: 1px solid var(--border);
+    padding: 10px 20px; border-radius: 40px; font-size: 13px; font-weight: 500;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+    opacity: 0; z-index: 200; white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-/* ── LANDING SCREEN ── */
-#landing-screen {
-position: fixed; inset: 0; z-index: 9000; background: var(–bg);
-display: flex; flex-direction: column; align-items: center; justify-content: center;
-padding: calc(env(safe-area-inset-top, 0px) + 20px) 32px calc(env(safe-area-inset-bottom, 0px) + 40px);
-text-align: center; transition: opacity .4s, transform .4s;
-}
-#landing-screen.hide { opacity: 0; transform: translateY(-20px); pointer-events: none; }
-.landing-logo { width: 96px; height: 96px; border-radius: 26px; background: var(–surface); border: 1px solid var(–border); display: flex; align-items: center; justify-content: center; font-size: 52px; margin-bottom: 28px; box-shadow: 0 8px 40px rgba(192,132,252,.15); animation: logoFloat 4s ease-in-out infinite; }
-@keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-.landing-title { font-family: ‘Cinzel’, serif; font-size: clamp(38px, 11vw, 56px); font-weight: 700; letter-spacing: -1px; line-height: 1.05; margin-bottom: 10px; background: linear-gradient(135deg, var(–accent), var(–accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.landing-sub { font-size: 14px; color: var(–ink-soft); line-height: 1.7; max-width: 280px; margin: 0 auto 44px; font-weight: 300; }
-.landing-begin-btn { width: 100%; max-width: 300px; padding: 17px; background: linear-gradient(135deg, var(–accent), var(–accent2)); color: white; border: none; border-radius: 16px; font-family: ‘DM Sans’, sans-serif; font-size: 17px; font-weight: 600; cursor: pointer; letter-spacing: .3px; margin-bottom: 14px; box-shadow: 0 8px 32px rgba(192,132,252,.25); transition: transform .15s, opacity .15s; }
-.landing-begin-btn:active { transform: scale(.97); }
-.landing-howto-btn { background: none; border: 1px solid var(–border); border-radius: 40px; padding: 10px 28px; color: var(–ink-soft); font-family: ‘DM Sans’, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .2s, color .2s; }
-.landing-howto-btn:active { border-color: var(–accent); color: var(–accent); }
+  /* ── LANDING SCREEN ── */
+  #landing-screen {
+    position: fixed; inset: 0; z-index: 9000; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 32px calc(env(safe-area-inset-bottom, 0px) + 40px);
+    text-align: center; transition: opacity .4s, transform .4s;
+  }
+  #landing-screen.hide { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+  .landing-logo { width: 96px; height: 96px; border-radius: 26px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 52px; margin-bottom: 28px; box-shadow: 0 8px 40px rgba(192,132,252,.15); animation: logoFloat 4s ease-in-out infinite; }
+  @keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .landing-title { font-family: 'Cinzel', serif; font-size: clamp(38px, 11vw, 56px); font-weight: 700; letter-spacing: -1px; line-height: 1.05; margin-bottom: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .landing-sub { font-size: 14px; color: var(--ink-soft); line-height: 1.7; max-width: 280px; margin: 0 auto 44px; font-weight: 300; }
+  .landing-begin-btn { width: 100%; max-width: 300px; padding: 17px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; border-radius: 16px; font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600; cursor: pointer; letter-spacing: .3px; margin-bottom: 14px; box-shadow: 0 8px 32px rgba(192,132,252,.25); transition: transform .15s, opacity .15s; }
+  .landing-begin-btn:active { transform: scale(.97); }
+  .landing-howto-btn { background: none; border: 1px solid var(--border); border-radius: 40px; padding: 10px 28px; color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .2s, color .2s; }
+  .landing-howto-btn:active { border-color: var(--accent); color: var(--accent); }
 
-/* ── HOW TO SCREEN ── */
-#howto-screen { position: fixed; inset: 0; z-index: 9001; background: var(–bg); overflow-y: auto; display: none; animation: fadeUp .3s ease; }
-#howto-screen.show { display: block; }
-.howto-header { padding: calc(env(safe-area-inset-top, 0px) + 16px) 20px 14px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(–bg); z-index: 10; border-bottom: 1px solid var(–border); }
-.howto-title { font-family: ‘Cinzel’, serif; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
-.howto-body { padding: 24px 24px calc(env(safe-area-inset-bottom, 0px) + 40px); }
-.howto-section { margin-bottom: 28px; }
-.howto-section-title { font-family: ‘Cinzel’, serif; font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(–accent); text-transform: uppercase; margin-bottom: 10px; }
-.howto-section p { font-size: 14px; color: var(–ink-soft); line-height: 1.75; font-weight: 300; }
-.howto-section p strong { color: var(–ink); font-weight: 500; }
-.howto-tip { display: flex; align-items: flex-start; gap: 12px; margin-top: 10px; background: var(–surface); border: 1px solid var(–border); border-radius: 12px; padding: 12px 14px; }
-.howto-tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-.howto-tip-text { font-size: 13px; color: var(–ink-soft); line-height: 1.6; }
-.howto-tip-text strong { color: var(–ink); }
+  /* ── HOW TO SCREEN ── */
+  #howto-screen { position: fixed; inset: 0; z-index: 9001; background: var(--bg); overflow-y: auto; display: none; animation: fadeUp .3s ease; }
+  #howto-screen.show { display: block; }
+  .howto-header { padding: calc(env(safe-area-inset-top, 0px) + 16px) 20px 14px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 10; border-bottom: 1px solid var(--border); }
+  .howto-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+  .howto-body { padding: 24px 24px calc(env(safe-area-inset-bottom, 0px) + 40px); }
+  .howto-section { margin-bottom: 28px; }
+  .howto-section-title { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+  .howto-section p { font-size: 14px; color: var(--ink-soft); line-height: 1.75; font-weight: 300; }
+  .howto-section p strong { color: var(--ink); font-weight: 500; }
+  .howto-tip { display: flex; align-items: flex-start; gap: 12px; margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .howto-tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .howto-tip-text { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+  .howto-tip-text strong { color: var(--ink); }
 
-/* ── JOY CHIPS & INTENSITY ── */
-.joy-who-chip { font-family: ‘DM Sans’, sans-serif; font-size: 13px; color: var(–ink); background: rgba(255,255,255,.04); border: 1.5px solid var(–border); border-radius: 20px; padding: 7px 12px; cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
-.joy-who-chip.selected { background: rgba(201,168,76,.15); border-color: rgba(201,168,76,.6); color: #c9a84c; }
-#joy-intensity { -webkit-appearance: none; appearance: none; height: 4px; background: rgba(255,255,255,.1); border-radius: 4px; outline: none; }
-#joy-intensity::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #c9a84c; cursor: pointer; box-shadow: 0 2px 8px rgba(201,168,76,.4); }
-#joy-intensity::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #c9a84c; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(201,168,76,.4); }
+  /* ── JOY CHIPS & INTENSITY ── */
+  .joy-who-chip { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink); background: rgba(255,255,255,.04); border: 1.5px solid var(--border); border-radius: 20px; padding: 7px 12px; cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
+  .joy-who-chip.selected { background: rgba(201,168,76,.15); border-color: rgba(201,168,76,.6); color: #c9a84c; }
+  #joy-intensity { -webkit-appearance: none; appearance: none; height: 4px; background: rgba(255,255,255,.1); border-radius: 4px; outline: none; }
+  #joy-intensity::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #c9a84c; cursor: pointer; box-shadow: 0 2px 8px rgba(201,168,76,.4); }
+  #joy-intensity::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #c9a84c; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(201,168,76,.4); }
 
-/* ── ANIMATIONS ── */
-@keyframes cardSnap { 0%{transform:translateX(-110%) scale(1)} 20%{transform:translateX(-80%) scale(1.04)} 100%{transform:translateX(-110%) scale(1);opacity:0} }
-@keyframes cardSnapRight { 0%{transform:translateX(110%) scale(1)} 20%{transform:translateX(80%) scale(1.04)} 100%{transform:translateX(110%) scale(1);opacity:0} }
+  /* ── ANIMATIONS ── */
+  @keyframes cardSnap { 0%{transform:translateX(-110%) scale(1)} 20%{transform:translateX(-80%) scale(1.04)} 100%{transform:translateX(-110%) scale(1);opacity:0} }
+  @keyframes cardSnapRight { 0%{transform:translateX(110%) scale(1)} 20%{transform:translateX(80%) scale(1.04)} 100%{transform:translateX(110%) scale(1);opacity:0} }
 </style>
-
 </head>
 <body>
 <canvas id="particle-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;transition:opacity .2s"></canvas>
 
 <!-- ══ LANDING SCREEN ══ -->
-
 <div id="landing-screen">
   <div class="landing-logo">💀</div>
   <div class="landing-title">Ritual</div>
@@ -364,7 +364,6 @@ text-align: center; transition: opacity .4s, transform .4s;
 </div>
 
 <!-- ══ HOW TO SCREEN ══ -->
-
 <div id="howto-screen">
   <div class="howto-header">
     <div class="howto-title">How to use</div>
@@ -374,74 +373,71 @@ text-align: center; transition: opacity .4s, transform .4s;
   </div>
   <div class="howto-body">
 
-```
-<div class="howto-section">
-  <div class="howto-section-title">Your rituals</div>
-  <p>Rituals are the habits and routines you track — things you want to do on a loose schedule, like exercise, journalling, skincare, or meditation.</p>
-  <p style="margin-top:8px">Each ritual has a <strong>min days</strong> (earliest you'd repeat it) and a <strong>max days</strong> (when it's due). The app shows how overdue each one is as a colour bar from green to red.</p>
-  <p style="margin-top:8px">Rituals are grouped by category. Tap a category tile to see its rituals and swipe left to mark one done.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">Your rituals</div>
+      <p>Rituals are the habits and routines you track — things you want to do on a loose schedule, like exercise, journalling, skincare, or meditation.</p>
+      <p style="margin-top:8px">Each ritual has a <strong>min days</strong> (earliest you'd repeat it) and a <strong>max days</strong> (when it's due). The app shows how overdue each one is as a colour bar from green to red.</p>
+      <p style="margin-top:8px">Rituals are grouped by category. Tap a category tile to see its rituals and swipe left to mark one done.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">Marking done</div>
-  <p><strong>Swipe left</strong> on a ritual card to mark it done — your sheet is updated immediately. <strong>Swipe right</strong> to quiet it until midnight 🌙 if you don't want to see it today.</p>
-  <p style="margin-top:8px">On the home screen, urgent rituals appear in the <strong>Needs attention</strong> strip. Swipe left there too.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">Marking done</div>
+      <p><strong>Swipe left</strong> on a ritual card to mark it done — your sheet is updated immediately. <strong>Swipe right</strong> to quiet it until midnight 🌙 if you don't want to see it today.</p>
+      <p style="margin-top:8px">On the home screen, urgent rituals appear in the <strong>Needs attention</strong> strip. Swipe left there too.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">XP and ranks</div>
-  <p>Marking a ritual done gives you <strong>+20 XP</strong>. XP builds your rank from Stone Dweller up through Wanderer, Squire, Knight, Champion, Warrior, Hero, Legend, Sovereign, and Mythic. Rank progress shows as a bar on the game card.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">XP and ranks</div>
+      <p>Marking a ritual done gives you <strong>+20 XP</strong>. XP builds your rank from Stone Dweller up through Wanderer, Squire, Knight, Champion, Warrior, Hero, Legend, Sovereign, and Mythic. Rank progress shows as a bar on the game card.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">HP and health</div>
-  <p>HP starts at 100. Completing rituals restores small HP. It regenerates +5 daily. Below 30 you'll get a care warning. Negative items reduce HP when over the daily limit. Logging a joy moment gives +2 HP.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">HP and health</div>
+      <p>HP starts at 100. Completing rituals restores small HP. It regenerates +5 daily. Below 30 you'll get a care warning. Negative items reduce HP when over the daily limit. Logging a joy moment gives +2 HP.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">Negative items</div>
-  <p>Negative items live on the home screen under a collapsible heading — tap to expand. Tap any item to log one occurrence. Once over the daily limit it costs HP and XP.</p>
-  <p style="margin-top:8px">Add them via the ＋ button. Tick <strong>Negative item</strong> on the form — the fields change to <em>Allowed per day</em> and <em>HP per over allowance</em>. They save to <strong>Sheet3</strong>.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">Negative items</div>
+      <p>Negative items live on the home screen under a collapsible heading — tap to expand. Tap any item to log one occurrence. Once over the daily limit it costs HP and XP.</p>
+      <p style="margin-top:8px">Add them via the ＋ button. Tick <strong>Negative item</strong> on the form — the fields change to <em>Allowed per day</em> and <em>HP per over allowance</em>. They save to <strong>Sheet3</strong>.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">✨ Joy journal</div>
-  <p>Tap the <strong>★ star</strong> in the header to log a positive moment. The form walks through: what happened · who it was from (you, Kathrina, coworker, family, friend, stranger) · any extra detail on who · the type of moment (love languages or a custom tag) · where you were · how much it meant.</p>
-  <p style="margin-top:8px">The <strong>How much did it mean?</strong> slider runs from <em>small flicker</em> to <em>unforgettable</em>. No number is shown — just the position and a phrase.</p>
-  <p style="margin-top:8px">Tap <strong>📖 Joy journal</strong> on the home screen to read back through entries. Newest first. Each entry shows the category, who it was from, location, description, and a row of dots for intensity.</p>
-  <p style="margin-top:8px">Entries save to <strong>Sheet4</strong>: Timestamp · WhoFrom · WhoExtra · Category · Location · Description · Intensity.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">✨ Joy journal</div>
+      <p>Tap the <strong>★ star</strong> in the header to log a positive moment. The form walks through: what happened · who it was from (you, Kathrina, coworker, family, friend, stranger) · any extra detail on who · the type of moment (love languages or a custom tag) · where you were · how much it meant.</p>
+      <p style="margin-top:8px">The <strong>How much did it mean?</strong> slider runs from <em>small flicker</em> to <em>unforgettable</em>. No number is shown — just the position and a phrase.</p>
+      <p style="margin-top:8px">Tap <strong>📖 Joy journal</strong> on the home screen to read back through entries. Newest first. Each entry shows the category, who it was from, location, description, and a row of dots for intensity.</p>
+      <p style="margin-top:8px">Entries save to <strong>Sheet4</strong>: Timestamp · WhoFrom · WhoExtra · Category · Location · Description · Intensity.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">One-off rituals</div>
-  <p>Tick <strong>One-off</strong> when adding a ritual. Once marked done it archives to <strong>Sheet2</strong> and disappears from the list. Tap the clock icon (⏱) to view past one-offs.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">One-off rituals</div>
+      <p>Tick <strong>One-off</strong> when adding a ritual. Once marked done it archives to <strong>Sheet2</strong> and disappears from the list. Tap the clock icon (⏱) to view past one-offs.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">Categories</div>
-  <p>Add category codes to column E of your ritual sheet (space-separated). Define each code in column I in the format <code>self = Self Care 🪥</code>. The app caches the legend for 24 hours.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">Categories</div>
+      <p>Add category codes to column E of your ritual sheet (space-separated). Define each code in column I in the format <code>self = Self Care 🪥</code>. The app caches the legend for 24 hours.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">Sheet layout</div>
-  <p><strong>Sheet1</strong> — rituals. A Name · B Min days · C Max days · D Last done · E Category codes · F One-off flag · I Category legend.</p>
-  <p style="margin-top:8px"><strong>Sheet2</strong> — archived one-off rituals (written by app).</p>
-  <p style="margin-top:8px"><strong>Sheet3</strong> — negative items. A Name · B Allowed/day · C HP/over · D Last logged · E Count today · F Date.</p>
-  <p style="margin-top:8px"><strong>Sheet4</strong> — joy journal. A Timestamp · B WhoFrom · C WhoExtra · D Category · E Location · F Description · G Intensity.</p>
-  <p style="margin-top:8px"><strong>Sheet5</strong> — player progress. Written and read by the app: XP · HP · streak · last check-in. Survives device changes and browser data clears.</p>
-</div>
+    <div class="howto-section">
+      <div class="howto-section-title">Sheet layout</div>
+      <p><strong>Sheet1</strong> — rituals. A Name · B Min days · C Max days · D Last done · E Category codes · F One-off flag · I Category legend.</p>
+      <p style="margin-top:8px"><strong>Sheet2</strong> — archived one-off rituals (written by app).</p>
+      <p style="margin-top:8px"><strong>Sheet3</strong> — negative items. A Name · B Allowed/day · C HP/over · D Last logged · E Count today · F Date.</p>
+      <p style="margin-top:8px"><strong>Sheet4</strong> — joy journal. A Timestamp · B WhoFrom · C WhoExtra · D Category · E Location · F Description · G Intensity.</p>
+      <p style="margin-top:8px"><strong>Sheet5</strong> — player progress. Written and read by the app: XP · HP · streak · last check-in. Survives device changes and browser data clears.</p>
+    </div>
 
-<div class="howto-section">
-  <div class="howto-section-title">Refresh &amp; sign-in</div>
-  <p>The <strong>⟳ refresh button</strong> in the header reloads your data and re-checks your Google sign-in if the session has expired — one tap covers both. Sign-in is silent after the first time.</p>
-</div>
-```
+    <div class="howto-section">
+      <div class="howto-section-title">Refresh &amp; sign-in</div>
+      <p>The <strong>⟳ refresh button</strong> in the header reloads your data and re-checks your Google sign-in if the session has expired — one tap covers both. Sign-in is silent after the first time.</p>
+    </div>
 
   </div>
 </div>
 
 <!-- ══ HOME VIEW ══ -->
-
 <div class="view active" id="view-home" style="display:flex;flex-direction:column">
   <header>
     <div>
@@ -468,7 +464,6 @@ text-align: center; transition: opacity .4s, transform .4s;
 </div>
 
 <!-- ══ TASK VIEW ══ -->
-
 <div class="view block" id="view-tasks" style="display:flex;flex-direction:column">
   <header>
     <div>
@@ -512,9 +507,7 @@ text-align: center; transition: opacity .4s, transform .4s;
 </div>
 
 <!-- ══ PAST ONE-OFFS SHEET ══ -->
-
 <!-- ══ JOY ADD SHEET ══ -->
-
 <div class="sheet-overlay" id="joy-overlay" onclick="closeAddJoy()"></div>
 <div class="bottom-sheet" id="joy-sheet">
   <div class="sheet-handle"></div>
@@ -529,80 +522,76 @@ text-align: center; transition: opacity .4s, transform .4s;
       <textarea class="form-input" id="joy-description" rows="4" placeholder="Short description — a few lines is plenty" style="resize:vertical;font-family:inherit;min-height:80px"></textarea>
     </div>
 
-```
-<!-- 2. From who -->
-<div class="form-group">
-  <label class="form-label">From who?</label>
-  <div id="joy-who-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-    <button type="button" class="joy-who-chip" data-who="Me">🌿 Me</button>
-    <button type="button" class="joy-who-chip" data-who="Kathrina">💜 Kathrina</button>
-    <button type="button" class="joy-who-chip" data-who="Coworker">👔 Coworker</button>
-    <button type="button" class="joy-who-chip" data-who="Family">👨‍👩‍👧 Family</button>
-    <button type="button" class="joy-who-chip" data-who="Friend">👥 Friend</button>
-    <button type="button" class="joy-who-chip" data-who="Stranger">🌟 Stranger</button>
-    <button type="button" class="joy-who-chip" data-who="Other">✨ Other</button>
-  </div>
-  <input class="form-input" id="joy-who-extra" type="text" placeholder="Extra detail (optional) — e.g. name, context" autocomplete="off">
-</div>
-
-<!-- 3. Type of act / category -->
-<div class="form-group">
-  <label class="form-label">Type of moment</label>
-  <select class="form-input" id="joy-category" style="appearance:auto;-webkit-appearance:menulist">
-    <optgroup label="Love languages">
-      <option value="Acts of Service">🤝 Acts of Service</option>
-      <option value="Words of Affirmation">💬 Words of Affirmation</option>
-      <option value="Quality Time">🕰️ Quality Time</option>
-      <option value="Physical Touch">🫂 Physical Touch</option>
-      <option value="Receiving Gifts">🎁 Receiving Gifts</option>
-    </optgroup>
-    <optgroup label="Other">
-      <option value="Self Love">🪞 Self Love</option>
-      <option value="Kindness">🌟 Kindness</option>
-      <option value="Unexpected good">🎲 Unexpected good</option>
-      <option value="Gratitude">🙏 Gratitude</option>
-      <option value="Custom">✏️ Write my own</option>
-    </optgroup>
-  </select>
-  <input class="form-input" id="joy-category-custom" type="text" placeholder="Describe the type…" autocomplete="off" style="display:none;margin-top:8px">
-</div>
-
-<!-- 4. Where -->
-<div class="form-group">
-  <label class="form-label">Where were you?</label>
-  <div style="display:flex;gap:8px;align-items:flex-end">
-    <div style="flex:1">
-      <input class="form-input" id="joy-location" type="text" placeholder="e.g. Home, Coffee shop, Park…" autocomplete="off" style="margin-bottom:0">
+    <!-- 2. From who -->
+    <div class="form-group">
+      <label class="form-label">From who?</label>
+      <div id="joy-who-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        <button type="button" class="joy-who-chip" data-who="Me">🌿 Me</button>
+        <button type="button" class="joy-who-chip" data-who="Kathrina">💜 Kathrina</button>
+        <button type="button" class="joy-who-chip" data-who="Coworker">👔 Coworker</button>
+        <button type="button" class="joy-who-chip" data-who="Family">👨‍👩‍👧 Family</button>
+        <button type="button" class="joy-who-chip" data-who="Friend">👥 Friend</button>
+        <button type="button" class="joy-who-chip" data-who="Stranger">🌟 Stranger</button>
+        <button type="button" class="joy-who-chip" data-who="Other">✨ Other</button>
+      </div>
+      <input class="form-input" id="joy-who-extra" type="text" placeholder="Extra detail (optional) — e.g. name, context" autocomplete="off">
     </div>
-    <button onclick="useJoyGeo()" id="joy-geo-btn" title="Use current location" style="flex-shrink:0;padding:11px 14px;background:rgba(255,255,255,.06);color:var(--ink);border:1.5px solid var(--border);border-radius:10px;font-family:DM Sans,sans-serif;font-size:13px;cursor:pointer">📍</button>
-  </div>
-  <div class="form-hint">Freetext — tap 📍 for coordinates</div>
-</div>
 
-<!-- 5. Save -->
-<!-- 5. Intensity slider -->
-<div class="form-group">
-  <label class="form-label">How much did it mean?</label>
-  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;padding:0 2px">
-    <span>small flicker</span>
-    <span>unforgettable</span>
-  </div>
-  <input type="range" id="joy-intensity" min="1" max="5" step="1" value="3" style="width:100%;accent-color:#c9a84c;height:24px;-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer">
-  <div style="text-align:center;margin-top:8px"><span id="joy-intensity-emoji" style="font-size:32px;line-height:1">🌸</span></div>
-  <div class="form-hint" id="joy-intensity-label" style="text-align:center;margin-top:4px;color:var(--ink);font-weight:500">a lovely moment</div>
-</div>
+    <!-- 3. Type of act / category -->
+    <div class="form-group">
+      <label class="form-label">Type of moment</label>
+      <select class="form-input" id="joy-category" style="appearance:auto;-webkit-appearance:menulist">
+        <optgroup label="Love languages">
+          <option value="Acts of Service">🤝 Acts of Service</option>
+          <option value="Words of Affirmation">💬 Words of Affirmation</option>
+          <option value="Quality Time">🕰️ Quality Time</option>
+          <option value="Physical Touch">🫂 Physical Touch</option>
+          <option value="Receiving Gifts">🎁 Receiving Gifts</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value="Self Love">🪞 Self Love</option>
+          <option value="Kindness">🌟 Kindness</option>
+          <option value="Unexpected good">🎲 Unexpected good</option>
+          <option value="Gratitude">🙏 Gratitude</option>
+          <option value="Custom">✏️ Write my own</option>
+        </optgroup>
+      </select>
+      <input class="form-input" id="joy-category-custom" type="text" placeholder="Describe the type…" autocomplete="off" style="display:none;margin-top:8px">
+    </div>
 
-<div id="joy-private-notice" style="display:none;font-size:12px;color:var(--ink-soft);padding:8px 12px;background:rgba(129,140,248,.08);border-radius:10px;border:1px solid rgba(129,140,248,.2);margin-bottom:12px">
-    🔒 This entry is private — only shown when you unlock your journal.
-  </div>
-  <button class="submit-btn" id="joy-submit-btn" onclick="submitJoy()">🎵 Happy Happy Joy Joy</button>
-```
+    <!-- 4. Where -->
+    <div class="form-group">
+      <label class="form-label">Where were you?</label>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div style="flex:1">
+          <input class="form-input" id="joy-location" type="text" placeholder="e.g. Home, Coffee shop, Park…" autocomplete="off" style="margin-bottom:0">
+        </div>
+        <button onclick="useJoyGeo()" id="joy-geo-btn" title="Use current location" style="flex-shrink:0;padding:11px 14px;background:rgba(255,255,255,.06);color:var(--ink);border:1.5px solid var(--border);border-radius:10px;font-family:DM Sans,sans-serif;font-size:13px;cursor:pointer">📍</button>
+      </div>
+      <div class="form-hint">Freetext — tap 📍 for coordinates</div>
+    </div>
 
+    <!-- 5. Save -->
+    <!-- 5. Intensity slider -->
+    <div class="form-group">
+      <label class="form-label">How much did it mean?</label>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;padding:0 2px">
+        <span>small flicker</span>
+        <span>unforgettable</span>
+      </div>
+      <input type="range" id="joy-intensity" min="1" max="5" step="1" value="3" style="width:100%;accent-color:#c9a84c;height:24px;-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer">
+      <div style="text-align:center;margin-top:8px"><span id="joy-intensity-emoji" style="font-size:32px;line-height:1">🌸</span></div>
+      <div class="form-hint" id="joy-intensity-label" style="text-align:center;margin-top:4px;color:var(--ink);font-weight:500">a lovely moment</div>
+    </div>
+
+    <div id="joy-private-notice" style="display:none;font-size:12px;color:var(--ink-soft);padding:8px 12px;background:rgba(129,140,248,.08);border-radius:10px;border:1px solid rgba(129,140,248,.2);margin-bottom:12px">
+        🔒 This entry is private — only shown when you unlock your journal.
+      </div>
+      <button class="submit-btn" id="joy-submit-btn" onclick="submitJoy()">🎵 Happy Happy Joy Joy</button>
   </div>
 </div>
 
 <!-- ══ JOY JOURNAL VIEWER ══ -->
-
 <div class="sheet-overlay" id="journal-overlay" onclick="closeJoyJournal()"></div>
 <div class="bottom-sheet" id="journal-sheet">
   <div class="sheet-handle"></div>
@@ -626,7 +615,6 @@ text-align: center; transition: opacity .4s, transform .4s;
 </div>
 
 <!-- ══ ADD TASK SHEET ══ -->
-
 <div class="sheet-overlay" id="add-overlay" onclick="closeAddTask()"></div>
 <div class="bottom-sheet" id="add-sheet">
   <div class="sheet-handle"></div>
@@ -673,7 +661,12 @@ text-align: center; transition: opacity .4s, transform .4s;
 <div id="lp-confirm"></div>
 <div id="toast"></div>
 
+
+
+
+
 <script>
+
 
 
 
@@ -2022,7 +2015,7 @@ function renderTasks(){
     const wrap=document.createElement('div');wrap.className='task-card-wrap';
     const bgDone=document.createElement('div');bgDone.className='swipe-bg-done';bgDone.innerHTML='✓';
     const bgSnooze=document.createElement('div');bgSnooze.className='swipe-bg-snooze';bgSnooze.innerHTML='🌙';
-    const card=document.createElement('div');card.className='task-card';card.dataset.row=task.sheetRow;
+    const card=document.createElement('div');card.className='task-card';card.dataset.row=task.sheetRow;card.dataset.urgency=urgencyLevel(task.ratio);
     card.style.cssText='touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1';
     card.innerHTML=`<div class="task-inner"><div class="task-name">${task.name}</div>${task.oneOff?'<div class="one-off-badge">✦ One-off</div>':''}</div><div class="task-last">${relativeTime(task.lastDone)}</div><div class="task-bar"><div class="task-fill" style="background:${color}" data-target="${width}"></div></div>`;
     wrap.appendChild(bgDone);wrap.appendChild(bgSnooze);wrap.appendChild(card);
@@ -2304,6 +2297,6 @@ updateLandingGreeting();
 
 
 
-</script>
 
-</html>
+</script>
+  </html>
