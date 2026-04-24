@@ -56,9 +56,10 @@
   .view.active {
     display: flex; flex-direction: column;
     height: 100dvh;
+    overflow: hidden;
     animation: fadeUp .25s ease;
   }
-  .view.active.block { display: block; }
+  /* .view.active.block removed — task view uses flex column */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -179,12 +180,12 @@
   .cat-hint { font-size: 9px; color: var(--ink-muted); margin-top: 6px; letter-spacing: .5px; opacity: .6; }
 
   /* ── TASK VIEW ── */
-  .task-view-header { padding: 0 20px 10px; }
+  .task-view-header { padding: 0 20px 10px; flex-shrink: 0; }
   .task-cat-title { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
-  .legend { display: flex; gap: 10px; padding: 0 16px 10px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 10px; padding: 0 16px 10px; flex-wrap: wrap; flex-shrink: 0; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--ink-muted); letter-spacing: .3px; }
   .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .filter-bar { display: flex; gap: 8px; padding: 0 16px 14px; overflow-x: auto; scrollbar-width: none; }
+  .filter-bar { display: flex; gap: 8px; padding: 0 16px 14px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
   .filter-bar::-webkit-scrollbar { display: none; }
   .filter-btn {
     flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
@@ -199,7 +200,10 @@
 
   /* ── TASK LIST ── */
   .task-list {
-    padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 80px);
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
     display: flex; flex-direction: column; gap: 10px;
   }
 
@@ -442,7 +446,7 @@
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
-      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.4.1</div>
+      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.4.2</div>
       <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -460,12 +464,12 @@
       </button>
     </div>
   </header>
-  <div id="streak-badge" style="display:none;align-items:center;gap:6px;padding:4px 20px;font-size:12px;color:var(--c-due)"></div>
+  
   <div id="home-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 80px)"></div>
 </div>
 
 <!-- ══ TASK VIEW ══ -->
-<div class="view block" id="view-tasks" style="display:flex;flex-direction:column">
+<div class="view" id="view-tasks" style="display:flex;flex-direction:column">
   <header>
     <div>
       <button class="back-btn" onclick="showHome()">
@@ -667,6 +671,11 @@
 
 
 <script>
+
+
+
+
+
 
 
 
@@ -1047,24 +1056,8 @@ function checkStreakMilestone(days) {
   }, 500);
 }
 
-function renderStreakBadge() {
-  const el=document.getElementById('streak-badge');
-  if (!el) return;
-  const {current,best}=getStreakData();
-  const g=loadGame();
-  if (current<1) { el.style.display='none'; return; }
-  el.style.display='flex';
-  const atRisk = g.streakGracePending;
-  const nextMilestone = Object.keys(STREAK_MILESTONES).map(Number).find(m=>m>current);
-  const color = atRisk ? 'color:#c97c3c' : '';
-  el.innerHTML='<span style="font-size:14px">'+(atRisk?'⚠️':'🔥')+'</span>'+
-    '<span style="'+color+'">'+current+' day streak'+
-    (atRisk?' · at risk — log something!':'')+
-    (!atRisk && best>current?' · best: '+best:'')+
-    (!atRisk && current===best&&current>1?' · best ever! 🏆':'')+
-    (!atRisk && nextMilestone?' · next milestone: '+nextMilestone+' days':'')+
-    '</span>';
-}
+function renderStreakBadge() {} // streak shown inline in renderHome
+
 
 // ─── Rhythm ───────────────────────────────────────────────────────────────
 function getWeeklyRhythm(catCode) {
@@ -1704,7 +1697,25 @@ async function openJoyJournal() {
   document.getElementById('journal-overlay').classList.add('open');
   document.getElementById('journal-sheet').classList.add('open');
   const list = document.getElementById('journal-list');
-  if (_demoMode) { renderJoyList(list, DEMO_JOY, false); return; }
+  if (_demoMode) {
+    const demoPub  = DEMO_JOY.filter(e => !e.isPrivate);
+    const demoPriv = DEMO_JOY.filter(e => e.isPrivate);
+    renderJoyList(list, demoPub);
+    if (demoPriv.length) {
+      const privSection = document.createElement('div');
+      privSection.style.cssText = 'margin-top:20px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px';
+      privSection.innerHTML =
+        '<div onclick="togglePrivateEntries(this)" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;user-select:none">' +
+          '<div style="font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:1px">🔒 ' + demoPriv.length + ' private entries</div>' +
+          '<div style="font-size:11px;color:var(--accent)">Tap to reveal</div>' +
+        '</div>' +
+        '<div class="priv-list" style="display:none"></div>';
+      const privListEl = privSection.querySelector('.priv-list');
+      renderJoyList(privListEl, demoPriv);
+      list.appendChild(privSection);
+    }
+    return;
+  }
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading your moments…</div>';
   try {
     const range = encodeURIComponent(CONFIG.JOY_SHEET + '!A:J');
@@ -1968,13 +1979,18 @@ async function loadData(forceRefresh=false){
 // ─── Demo / preview mode (unconfigured) ──────────────────────────────────────
 let _demoMode = false;
 const DEMO_JOY = [
-  { ts:'23 Apr 2026 07:42', who:'Kathrina', extra:'', cat:'Acts of Service', loc:'Home', desc:"Made me a coffee before I even got out of bed. Didn't ask, just knew. Left it on the bedside table and went back to getting ready.", intensity:4 },
-  { ts:'22 Apr 2026 19:15', who:'Me', extra:'', cat:'Gratitude', loc:'Artedomus Campbellfield', desc:"Finished a really tough week at work. Sat in the car park for five minutes just to acknowledge it before going in. Proud of how I handled it.", intensity:3 },
-  { ts:'21 Apr 2026 12:30', who:'Kathrina', extra:'', cat:'Words of Affirmation', loc:'Home', desc:"She told me she notices how much I've been putting into myself lately. Said it so genuinely. I needed to hear it.", intensity:5 },
-  { ts:'20 Apr 2026 15:00', who:'Friend', extra:'Liam', cat:'Quality Time', loc:'The Local', desc:'First proper catch-up in months. We just talked for hours. No phones on the table. Reminded me what a good friendship actually feels like.', intensity:4 },
-  { ts:'19 Apr 2026 08:10', who:'Me', extra:'', cat:'Self Love', loc:'Home', desc:'Sat and had breakfast without my phone. Just ate and looked out the window at nothing. Small thing. Felt good.', intensity:2 },
-  { ts:'18 Apr 2026 18:45', who:'Stranger', extra:'', cat:'Kindness', loc:'Train', desc:'Someone held the door, smiled, and asked how my day was going. Nothing big. It lifted me the whole commute home.', intensity:1 },
-  { ts:'17 Apr 2026 21:00', who:'Kathrina', extra:'', cat:'Physical Touch', loc:'Home', desc:"Long hug when I walked in the door. She didn't say anything, just held on. Exactly what I needed and she knew it without me saying a word.", intensity:5 },
+  // Public entries
+  { ts:'23 Apr 2026 07:42', who:'Kathrina', extra:'', cat:'Acts of Service',     loc:'Home',       desc:"Brought me a drink she knows I like, without me asking.",                                    intensity:4 },
+  { ts:'22 Apr 2026 19:15', who:'Me',       extra:'', cat:'Gratitude',           loc:'Work',       desc:"Finished a hard week. Sat with it for a moment before heading in.",                        intensity:3 },
+  { ts:'21 Apr 2026 12:30', who:'Kathrina', extra:'', cat:'Words of Affirmation',loc:'Home',       desc:"She said she notices how much I've been putting into myself. Unprompted.",                  intensity:5 },
+  { ts:'20 Apr 2026 15:00', who:'Friend',   extra:'Liam', cat:'Quality Time',    loc:'The Local',  desc:"Proper catch-up, no phones. Reminded me what good friendship feels like.",                  intensity:4 },
+  { ts:'19 Apr 2026 08:10', who:'Me',       extra:'', cat:'Self Love',           loc:'Home',       desc:"Ate breakfast without my phone. Just sat and looked out the window.",                      intensity:2 },
+  { ts:'18 Apr 2026 18:45', who:'Stranger', extra:'', cat:'Kindness',            loc:'Train',      desc:"Compliment from a stranger — said I looked like a rockstar. Said we were a cute couple too.", intensity:3 },
+  { ts:'17 Apr 2026 21:00', who:'Kathrina', extra:'', cat:'Physical Touch',      loc:'Home',       desc:"Long hug when I got home. She didn't say anything. Just knew.",                            intensity:5 },
+  // Private entries
+  { ts:'22 Apr 2026 22:10', who:'', extra:'', cat:'Anxiety',      loc:'Home',   desc:"Head going again before bed. Kept running through a work thing that probably doesn't matter.",             intensity:3, isPrivate:true, worked:false, sheetRow:8 },
+  { ts:'20 Apr 2026 07:15', who:'', extra:'', cat:'Old pattern',  loc:'Car',    desc:"Caught myself going quiet instead of saying what I needed. Did it again.",                                  intensity:4, isPrivate:true, worked:true,  workedAt:'21 Apr 2026 09:30', workedNote:"Talked to Kathrina about it. Felt better once I actually said it out loud.", sheetRow:9 },
+  { ts:'15 Apr 2026 20:00', who:'', extra:'', cat:'Self doubt',   loc:'Home',   desc:"Compared myself to someone at work. Spent twenty minutes feeling like I'm behind.",                        intensity:2, isPrivate:true, worked:false, sheetRow:10 },
 ];
 
 function renderDemoHome() {
@@ -2008,10 +2024,10 @@ function renderDemoHome() {
   ];
 
   allNegItems = [
-    { name:'Alcohol',      limit:2, hpCost:8,  sheetRow:2, lastLogged:'', countToday:0 },
-    { name:'Junk food',    limit:1, hpCost:5,  sheetRow:3, lastLogged:'', countToday:0 },
-    { name:'Late night',   limit:0, hpCost:10, sheetRow:4, lastLogged:'', countToday:0 },
-    { name:'Skipped meds', limit:0, hpCost:15, sheetRow:5, lastLogged:'', countToday:0 },
+    { name:'Alcohol',         limit:2, hpCost:10, sheetRow:2, lastLogged:'', countToday:1 },
+    { name:'Takeaway',        limit:1, hpCost:5,  sheetRow:3, lastLogged:'', countToday:0 },
+    { name:'Late night',      limit:0, hpCost:8,  sheetRow:4, lastLogged:'', countToday:0 },
+    { name:'Doom scrolling',  limit:1, hpCost:5,  sheetRow:5, lastLogged:'', countToday:2 },
   ];
 
   // Show the full interactive home
@@ -2077,19 +2093,29 @@ function renderHome(){
     '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink);font-family:Playfair Display,serif">Joy journal</div>'+
     '<div style="font-size:11px;color:var(--muted);margin-top:1px">Look back on the good moments</div></div>'+
     '<span style="opacity:.5;font-size:12px">›</span></div>';
-  // Streak card — below joy journal
+  // Streak card — below joy journal, borderless, colour deepens with streak
   const _st = getStreakData(), _g = loadGame();
   if (_st.current > 0) {
-    const _atRisk  = _g.streakGracePending;
-    const _nextM   = Object.keys(STREAK_MILESTONES).map(Number).find(m=>m>_st.current);
-    const _icon    = _atRisk ? '⚠️' : '🔥';
-    const _color   = _atRisk ? '#c97c3c' : '#c9a84c';
-    const _label   = _st.current + ' day streak' +
-                     (_atRisk ? ' · at risk!' : '') +
-                     (!_atRisk && _st.best > _st.current ? ' · best: ' + _st.best : '') +
-                     (!_atRisk && _nextM ? ' · next milestone: ' + _nextM : '');
-    html += '<div style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">' +
-      '<span style="font-size:20px">' + _icon + '</span>' +
+    const _atRisk = _g.streakGracePending;
+    const _nextM  = Object.keys(STREAK_MILESTONES).map(Number).find(m=>m>_st.current);
+    // Colour scale: white → warm → gold → amber → deep orange
+    const _sc = _st.current;
+    const _color = _atRisk ? '#c97c3c'
+      : _sc >= 365 ? '#ff8000'
+      : _sc >= 200 ? '#e05010'
+      : _sc >= 100 ? '#e87c1a'
+      : _sc >= 60  ? '#f0a830'
+      : _sc >= 30  ? '#f5d080'
+      : _sc >= 14  ? '#f0e8d0'
+      : _sc >= 7   ? '#e0e0e0'
+      : '#b8b8b8';
+    const _icon  = _atRisk ? '⚠️' : '🔥';
+    const _label = _st.current + ' day streak' +
+      (_atRisk ? ' · at risk!' : '') +
+      (!_atRisk && _st.best > _st.current ? ' · best: ' + _st.best : '') +
+      (!_atRisk && _nextM ? ' · next: ' + _nextM + ' days' : '');
+    html += '<div style="padding:8px 4px;margin-bottom:10px;display:flex;align-items:center;gap:10px">' +
+      '<span style="font-size:18px">' + _icon + '</span>' +
       '<div style="flex:1;font-size:12px;color:' + _color + ';font-weight:500">' + _label + '</div>' +
       '</div>';
   }
@@ -2146,6 +2172,8 @@ function renderHome(){
   el.querySelectorAll('.category-card').forEach(card=>attachCatCardEvents(card));
   const countEl=document.getElementById('header-done-count');
   if(countEl){const n=getDoneTodayCount();countEl.textContent=n>0?`${n} done today`:'Personal tracker';}
+  // Re-wire cat card events after DOM patch (new nodes lose listeners)
+  document.querySelectorAll('.category-card').forEach(c=>attachCatCardEvents(c));
 }
 
 // ─── Render tasks ─────────────────────────────────────────────────────────────
@@ -2233,21 +2261,46 @@ function attachSwipe(card,bgDone,bgSnooze,sheetRow){
   });
 }
 function attachCatCardEvents(card){
-  let pressTimer=null,pressing=false;
-  const startPress=(e)=>{pressing=true;card.classList.add('long-press-active');pressTimer=setTimeout(()=>{
-    if(!pressing)return;
-    const topRow=card.dataset.topRow,topName=card.dataset.topName;
-    if(!topRow||!topName){showToast('No tasks due in this category');card.classList.remove('long-press-active');return;}
-    const lp=document.getElementById('lp-confirm');
-    lp.innerHTML=`Mark <strong>${topName}</strong> done?<button onclick="markDoneHome(${topRow},null,'${topName.replace(/'/g,"\\'")}');document.getElementById('lp-confirm').innerHTML=''" style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">✓ Yes</button><button onclick="document.getElementById('lp-confirm').innerHTML=''" style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">Cancel</button>`;
+  let pressTimer=null, longFired=false;
+
+  const startPress=(e)=>{
+    longFired=false;
+    card.classList.add('long-press-active');
+    pressTimer=setTimeout(()=>{
+      longFired=true;
+      pressTimer=null;
+      card.classList.remove('long-press-active');
+      const topRow=card.dataset.topRow, topName=card.dataset.topName;
+      if(!topRow||!topName){ showToast('No tasks due in this category'); return; }
+      const lp=document.getElementById('lp-confirm');
+      lp.innerHTML=`Mark <strong>${topName}</strong> done?`+
+        `<button onclick="markDoneHome(${topRow},null,'${topName.replace(/'/g,"\\'")}');document.getElementById('lp-confirm').innerHTML=''" `+
+          `style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">✓ Yes</button>`+
+        `<button onclick="document.getElementById('lp-confirm').innerHTML=''" `+
+          `style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">Cancel</button>`;
+    },600);
+  };
+
+  const endPress=()=>{
+    clearTimeout(pressTimer);
+    pressTimer=null;
     card.classList.remove('long-press-active');
-  },600);};
-  const endPress=()=>{pressing=false;clearTimeout(pressTimer);card.classList.remove('long-press-active');};
-  card.addEventListener('mousedown',startPress);card.addEventListener('touchstart',startPress,{passive:true});
-  card.addEventListener('mouseup',endPress);card.addEventListener('touchend',endPress);
-  card.addEventListener('mouseleave',endPress);card.addEventListener('touchcancel',endPress);
-  card.addEventListener('click',()=>{if(!pressTimer)return;showTasks(card.dataset.cat);});
+  };
+
+  // Tap to open category (only if long-press did NOT fire)
+  card.addEventListener('click', ()=>{
+    if (longFired) { longFired=false; return; }
+    showTasks(card.dataset.cat);
+  });
+
+  card.addEventListener('mousedown', startPress);
+  card.addEventListener('touchstart', startPress, {passive:true});
+  card.addEventListener('mouseup',    endPress);
+  card.addEventListener('touchend',   endPress);
+  card.addEventListener('mouseleave', endPress);
+  card.addEventListener('touchcancel',endPress);
 }
+
 
 // ─── Mark done ────────────────────────────────────────────────────────────────
 async function markDoneHome(sheetRow,btn,taskName){
@@ -2290,6 +2343,8 @@ function patchHomeAfterDone(sheetRow,timestamp){
   doneStrip.insertBefore(row,doneStrip.firstChild);
   const countEl=document.getElementById('header-done-count');
   if(countEl){const n=getDoneTodayCount();countEl.textContent=n>0?`${n} done today`:'Personal tracker';}
+  // Re-wire cat card events after DOM patch (new nodes lose listeners)
+  document.querySelectorAll('.category-card').forEach(c=>attachCatCardEvents(c));
 }
 async function writeToSheet(range,value,btn,sheetRow,timestamp,isHome){
   if (_demoMode) { applyDoneLocally(sheetRow,timestamp,btn); return; }
@@ -2483,5 +2538,10 @@ updateLandingGreeting();
 
 
 
+
+
+
+
+
 </script>
-      </html>
+  </html>
