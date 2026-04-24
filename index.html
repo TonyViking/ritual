@@ -442,6 +442,7 @@
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
+      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.4.0</div>
       <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -666,6 +667,18 @@
 
 
 <script>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1480,8 +1493,12 @@ function openAddJoy() {
   document.querySelectorAll('.joy-who-chip').forEach(c => c.classList.remove('selected'));
 
   // Set up mode-specific UI
-  const whoGroup   = document.getElementById('joy-who-chips')?.closest?.('.form-group') ||
-                     document.getElementById('joy-who-chips')?.parentElement;
+  // Walk up to find the form-group containing the who-chips
+  const chipsEl   = document.getElementById('joy-who-chips');
+  let whoGroup = chipsEl;
+  while (whoGroup && !whoGroup.classList.contains('form-group')) whoGroup = whoGroup.parentElement;
+  const extraGroup = document.getElementById('joy-who-extra')?.closest?.('.form-group') ||
+                     document.getElementById('joy-who-extra')?.parentElement;
   const extraInput = document.getElementById('joy-who-extra');
   const title      = document.querySelector('#joy-sheet .sheet-title');
   const submitBtn  = document.getElementById('joy-submit-btn');
@@ -1494,7 +1511,7 @@ function openAddJoy() {
     if (notice)     notice.style.display = 'block';
     // Hide who section
     if (whoGroup)   whoGroup.style.display = 'none';
-    if (extraInput) extraInput.style.display = 'none';
+    if (extraGroup) extraGroup.style.display = 'none';
     // Swap category options to reflection types
     if (catSel) {
       catSel.innerHTML =
@@ -1513,7 +1530,7 @@ function openAddJoy() {
     if (submitBtn)  submitBtn.textContent = '🎵 Happy Happy Joy Joy';
     if (notice)     notice.style.display = 'none';
     if (whoGroup)   whoGroup.style.display = '';
-    if (extraInput) extraInput.style.display = '';
+    if (extraGroup) extraGroup.style.display = '';
     // Restore original category options
     if (catSel) {
       catSel.innerHTML =
@@ -1615,7 +1632,7 @@ async function submitJoy() {
   const intensity   = parseInt(document.getElementById('joy-intensity').value) || 3;
 
   if (!description) { showToast('Write what happened first'); return; }
-  if (!whoFrom)     { showToast('Tap who it was from'); return; }
+  if (!_joyPrivateMode && !whoFrom) { showToast('Tap who it was from'); return; }
 
   const btn = document.getElementById('joy-submit-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -1667,7 +1684,17 @@ function renderJoyList(list, entries) {
         '</div>'+
       '</div>'+
       '<div style="font-size:14px;color:var(--ink);line-height:1.5;padding-left:28px">'+e.desc.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>'+
-      (e.intensity?'<div style="margin-top:6px;padding-left:28px;font-size:18px">'+(INTENSITY_EMOJI[e.intensity]||'✨')+'</div>':'')+
+      (e.isPrivate
+        ? '<div style="margin-top:10px;padding-left:28px;display:flex;align-items:center;gap:10px">'+
+            '<span style="font-size:18px">'+(INTENSITY_EMOJI[e.intensity]||'✨')+'</span>'+
+            (e.worked
+              ? '<div style="display:flex;flex-direction:column;gap:3px">'+
+                  '<span style="font-size:12px;color:var(--c-fresh);font-weight:500">✓ Worked through'+(e.workedAt?' · '+e.workedAt:'')+'</span>'+
+                  (e.workedNote?'<span style="font-size:13px;color:var(--ink-soft);font-style:italic;line-height:1.5">'+e.workedNote.replace(/</g,'&lt;')+'</span>':'')+
+                '</div>'
+              : '<button onclick="_wte(this)" data-row="'+e.sheetRow+'" data-int="'+e.intensity+'" style="font-size:12px;font-weight:500;color:var(--ink-soft);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;padding:5px 12px;cursor:pointer">Work through it &#8594;</button>')+
+          '</div>'
+        : (e.intensity?'<div style="margin-top:6px;padding-left:28px;font-size:18px">'+(INTENSITY_EMOJI[e.intensity]||'✨')+'</div>':''))+
     '</div>';
   }).join('');
 }
@@ -1679,7 +1706,7 @@ async function openJoyJournal() {
   if (_demoMode) { renderJoyList(list, DEMO_JOY, false); return; }
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading your moments…</div>';
   try {
-    const range = encodeURIComponent(CONFIG.JOY_SHEET + '!A:H');
+    const range = encodeURIComponent(CONFIG.JOY_SHEET + '!A:J');
     const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
     const data  = await (await fetch(url)).json();
     if (data.error) throw new Error(data.error.message);
@@ -1712,8 +1739,117 @@ async function openJoyJournal() {
         (intensity?'<div style="margin-top:6px;padding-left:28px;font-size:18px">'+(INTENSITY_EMOJI[intensity]||'✨')+'</div>':'')+
       '</div>';
     }).join('');
+    // Private entries section
+    if (privEntries.length) {
+      const privSection = document.createElement('div');
+      privSection.style.cssText = 'margin-top:20px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px';
+      privSection.innerHTML =
+        '<div onclick="togglePrivateEntries(this)" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;user-select:none">' +
+          '<div style="font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:1px">🔒 ' + privEntries.length + ' private ' + (privEntries.length===1?'entry':'entries') + '</div>' +
+          '<div style="font-size:11px;color:var(--accent)">Tap to reveal</div>' +
+        '</div>' +
+        '<div class="priv-list" style="display:none"></div>';
+      const privListEl = privSection.querySelector('.priv-list');
+      renderJoyList(privListEl, privEntries.map((r) => ({
+        ts:r[0]||'', who:'', extra:'', cat:r[3]||'',
+        loc:r[4]||'', desc:r[5]||'', intensity:parseInt(r[6])||0,
+        isPrivate:true,
+        worked:    (r[7]||'')==='private:worked',
+        workedAt:  r[8]||'',
+        workedNote:r[9]||'',
+        sheetRow:  privEntries.indexOf(r)+2,
+      })));
+      list.appendChild(privSection);
+    }
   } catch(e) { list.innerHTML = '<div class="error-msg">Failed to load: '+e.message+'</div>'; }
 }
+
+
+
+
+// Helper for work-through button (avoids quote nesting in template strings)
+function _wte(btn) { workThroughEntry(btn, +btn.dataset.row, +btn.dataset.int); }
+
+// ─── Working through private journal entries ──────────────────────────────────
+const WORK_XP = { 1:10, 2:20, 3:35, 4:50, 5:75 };
+
+async function workThroughEntry(btn, sheetRow, intensity) {
+  if (!btn) return;
+  const container = btn.closest('div[style*="margin-top:10px"]') || btn.parentElement;
+  if (!container) return;
+
+  // Show inline reflection panel
+  container.innerHTML =
+    '<div style="width:100%">' +
+      '<textarea id="wte-note-' + sheetRow + '" rows="3" placeholder="What helped? What shifted? (optional)" ' +
+        'style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;' +
+        'padding:10px;font-family:DM Sans,sans-serif;font-size:13px;color:var(--ink);resize:none;box-sizing:border-box;outline:none">' +
+      '</textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:8px">' +
+        '<button onclick="_saveReflection(this,' + sheetRow + ',' + intensity + ')" ' +
+          'style="flex:1;padding:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:10px;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save reflection</button>' +
+        '<button onclick="_cancelReflection(this)" ' +
+          'style="padding:9px 14px;background:rgba(255,255,255,.05);color:var(--ink-soft);border:1px solid var(--border);border-radius:10px;font-family:DM Sans,sans-serif;font-size:13px;cursor:pointer">Skip</button>' +
+      '</div>' +
+    '</div>';
+  // Focus textarea
+  setTimeout(() => { const ta=document.getElementById('wte-note-'+sheetRow); if(ta)ta.focus(); }, 100);
+}
+
+function _cancelReflection(btn) {
+  const container = btn.closest('div[style*="width:100%"]') || btn.parentElement.parentElement;
+  if (container) {
+    container.innerHTML = '<span style="font-size:12px;color:var(--ink-soft)">Skipped — tap again to add a reflection</span>';
+  }
+}
+
+async function _saveReflection(btn, sheetRow, intensity) {
+  const ta = document.getElementById('wte-note-' + sheetRow);
+  const note = ta ? ta.value.trim() : '';
+  const xp   = WORK_XP[intensity] || 20;
+  const ts   = formatDate(new Date());
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  // Award XP
+  addXP(xp);
+  setTimeout(renderGameCard, 150);
+  showToast('+' + xp + ' XP — well done for working through it', 3000);
+
+  // Update display
+  const container = btn.closest('div[style*="width:100%"]') || btn.parentElement.parentElement;
+
+  const doSave = async () => {
+    try {
+      // Write H=private:worked, I=timestamp, J=note
+      const range = encodeURIComponent(CONFIG.JOY_SHEET + '!H' + sheetRow + ':J' + sheetRow);
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?valueInputOption=RAW`;
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [['private:worked', ts, note]] }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      _renderWorkedState(container, ts, note);
+    } catch(e) {
+      console.warn('saveReflection failed:', e.message);
+      btn.disabled = false; btn.textContent = 'Save reflection';
+    }
+  };
+
+  if (_demoMode) { _renderWorkedState(container, ts, note); return; }
+  if (isTokenValid()) doSave(); else { pendingWrite = { customCallback: doSave }; initOAuth(); }
+}
+
+function _renderWorkedState(container, ts, note) {
+  container.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:4px">' +
+      '<span style="font-size:12px;color:var(--c-fresh);font-weight:500">✓ Worked through · ' + ts + '</span>' +
+      (note ? '<span style="font-size:13px;color:var(--ink-soft);font-style:italic;line-height:1.5">' + note.replace(/</g,'&lt;') + '</span>' : '') +
+    '</div>';
+}
+
 
 
 function togglePrivateEntries(header) {
@@ -2298,5 +2434,36 @@ updateLandingGreeting();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ─── Configuration ────────────────────────────────────────────────────────
+// IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
+// The ritual sheet has category codes in col E and a legend in col I
+// e.g.  self = Self Care 🪥
+
+
+
+
+
 </script>
-  </html>
+                                                             </html>
