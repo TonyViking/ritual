@@ -442,7 +442,7 @@
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
-      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.4.0</div>
+      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.4.1</div>
       <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -667,6 +667,7 @@
 
 
 <script>
+
 
 
 
@@ -1639,7 +1640,7 @@ async function submitJoy() {
   const timestamp = formatDate(new Date());
   const doSave = async () => {
     try {
-      const range = encodeURIComponent(CONFIG.JOY_SHEET + '!A:H');
+      const range = encodeURIComponent(CONFIG.JOY_SHEET + '!A1');
       const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
       const res = await fetch(url, {
         method: 'POST',
@@ -2076,6 +2077,22 @@ function renderHome(){
     '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink);font-family:Playfair Display,serif">Joy journal</div>'+
     '<div style="font-size:11px;color:var(--muted);margin-top:1px">Look back on the good moments</div></div>'+
     '<span style="opacity:.5;font-size:12px">›</span></div>';
+  // Streak card — below joy journal
+  const _st = getStreakData(), _g = loadGame();
+  if (_st.current > 0) {
+    const _atRisk  = _g.streakGracePending;
+    const _nextM   = Object.keys(STREAK_MILESTONES).map(Number).find(m=>m>_st.current);
+    const _icon    = _atRisk ? '⚠️' : '🔥';
+    const _color   = _atRisk ? '#c97c3c' : '#c9a84c';
+    const _label   = _st.current + ' day streak' +
+                     (_atRisk ? ' · at risk!' : '') +
+                     (!_atRisk && _st.best > _st.current ? ' · best: ' + _st.best : '') +
+                     (!_atRisk && _nextM ? ' · next milestone: ' + _nextM : '');
+    html += '<div style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">' +
+      '<span style="font-size:20px">' + _icon + '</span>' +
+      '<div style="flex:1;font-size:12px;color:' + _color + ';font-weight:500">' + _label + '</div>' +
+      '</div>';
+  }
   if(urgentTasks.length>0){html+='<div class="section-label">Needs attention</div><div class="urgent-strip" id="urgent-strip"></div>';}
   if(sortedCats.length===0){
     html+='<div class="empty-state"><span class="e-icon">📋</span>No categories yet.<br><span style="font-size:12px;opacity:.6">Add entries to column I of your ritual sheet<br>e.g. <code>self = Self Care 🪥</code></span></div>';
@@ -2465,5 +2482,6 @@ updateLandingGreeting();
 
 
 
+
 </script>
-                                                             </html>
+      </html>
