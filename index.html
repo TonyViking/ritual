@@ -223,7 +223,7 @@
   .task-card[data-urgency="soon"]  { border-left: 3px solid var(--c-soon); }
   .task-card[data-urgency="due"]   { border-left: 3px solid var(--c-due); }
   .task-card[data-urgency="over"]  { border-left: 3px solid var(--c-over); }
-  .task-inner { display: flex; align-items: center; gap: 12px; padding: 13px 13px 7px; }
+  .task-inner { display: flex; align-items: center; gap: 12px; padding: 13px 40px 7px 13px; position: relative; }
   .task-info  { flex: 1; }
   .task-name  { font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink); }
   .task-cats  { font-size: 10px; color: var(--ink-muted); margin-top: 3px; letter-spacing: .3px; }
@@ -234,6 +234,16 @@
   .task-fill  { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
   .swipe-hint { text-align: center; font-size: 10px; color: var(--ink-muted); padding: 0 0 10px; letter-spacing: .5px; opacity: .5; }
   .one-off-badge { font-size: 10px; color: #7a4fcf; background: rgba(122,79,207,.1); border-radius: 20px; padding: 2px 8px; display: inline-block; margin-top: 4px; }
+
+  .task-edit-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 8px; padding: 3px 8px;
+    font-size: 12px; color: var(--ink-soft); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; line-height: 1.4;
+    -webkit-user-select: none; user-select: none;
+  }
+  .task-edit-btn:active { background: rgba(192,132,252,.15); color: var(--accent); }
 
   /* ── SWIPE BACKGROUNDS ── */
   .swipe-bg-done, .swipe-bg-snooze {
@@ -447,7 +457,7 @@
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
-      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.5.1</div>
+      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.6.0</div>
       <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -742,6 +752,9 @@
 
 
 
+
+
+
 // ─── Configuration ────────────────────────────────────────────────────────
 // IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
 // The ritual sheet has category codes in col E and a legend in col I
@@ -859,6 +872,7 @@ const NEG_DAILY_KEY       = 'ritual_neg_daily_v2';
 
 // All neg items loaded from Sheet3
 let allNegItems = [];   // { name, limit, hpCost, sheetRow, lastLogged, countToday }
+let _editRow = null;  // sheetRow being edited (null = adding new)
 
 // ─── Particle engine ──────────────────────────────────────────────────────
 const _cvs = () => document.getElementById('particle-canvas');
@@ -943,23 +957,43 @@ function daysSince(date) {
 
 function relativeTime(date) {
   if (!date) return 'Never done';
-  const d=daysSince(date), now=new Date(), hr=now.getHours();
-  if (d < 0.04) return 'Done just now';
-  if (d < 1) {
-    const dh = new Date(date).getHours();
-    if (dh<12&&hr>=12) return 'Done this morning';
-    return 'Done today';
+  const d = daysSince(date);
+  if (d < 0.02) return 'Done just now';
+
+  const now  = new Date();
+  const done = new Date(date);
+  const nowH = now.getHours();
+  const doneH = done.getHours();
+
+  // Time-of-day label for a given hour
+  const tod = h => h >= 5 && h < 12 ? 'morning'
+                 : h >= 12 && h < 18 ? 'afternoon'
+                 : h >= 18 && h < 21 ? 'evening'
+                 : 'night';
+
+  // Same calendar day
+  const sameDay = done.toDateString() === now.toDateString();
+  if (sameDay) {
+    const slot = tod(doneH);
+    return 'Done this ' + slot;
   }
-  if (d < 2) {
-    const dh = new Date(date).getHours();
-    if (dh>=18) return 'Done last night';
-    if (dh>=12) return 'Done yesterday afternoon';
-    return 'Done yesterday';
+
+  // Yesterday
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (done.toDateString() === yesterday.toDateString()) {
+    const slot = tod(doneH);
+    if (slot === 'night') return 'Done last night';
+    return 'Done yesterday ' + slot;
   }
+
+  // 2 days ago
+  const twoDaysAgo = new Date(now); twoDaysAgo.setDate(now.getDate() - 2);
+  if (done.toDateString() === twoDaysAgo.toDateString()) return '2 days ago';
+
   const days = Math.floor(d);
-  if (days < 7) return `${days} days ago`;
-  if (days < 30) return `${Math.floor(days/7)} week${Math.floor(days/7)>1?'s':''} ago`;
-  return `${Math.floor(days/30)} month${Math.floor(days/30)>1?'s':''} ago`;
+  if (days < 7)  return days + ' days ago';
+  if (days < 30) { const w = Math.floor(days/7); return w + ' week' + (w>1?'s':'')+' ago'; }
+  const m = Math.floor(days/30); return m + ' month' + (m>1?'s':'')+' ago';
 }
 
 function urgencyRatio(min, max, days) {
@@ -1212,6 +1246,7 @@ function addXP(amount) {
   g.xp = Math.max(0, prev+amount);
   if (amount > 0) g.hp = Math.min(HP_MAX, (g.hp??HP_MAX)+HP_RITUAL_TASK);
   const prevIdx=getRankIndex(prev), newIdx=getRankIndex(g.xp);
+  recordDailyXP(amount);
   saveGame(g);
   if (newIdx < prevIdx) {
     const r=RANKS[newIdx];
@@ -1272,6 +1307,61 @@ function dailyRegen() {
   saveGame(g);
 }
 
+
+// ─── XP history (sparkline) ───────────────────────────────────────────────────
+const XP_HIST_KEY = 'ritual_xp_hist_v1';
+
+function recordDailyXP(amount) {
+  if (amount <= 0) return;
+  try {
+    const hist  = JSON.parse(localStorage.getItem(XP_HIST_KEY)) || {};
+    const today = new Date().toDateString();
+    hist[today] = (hist[today] || 0) + amount;
+    // Keep only last 14 days to avoid bloat
+    const keys = Object.keys(hist).sort((a,b) => new Date(a)-new Date(b));
+    if (keys.length > 14) keys.slice(0, keys.length-14).forEach(k => delete hist[k]);
+    localStorage.setItem(XP_HIST_KEY, JSON.stringify(hist));
+  } catch {}
+}
+
+function getXPSparkline() {
+  // Returns array of 7 values (oldest→today), 0 if no data
+  const hist = (() => { try { return JSON.parse(localStorage.getItem(XP_HIST_KEY))||{}; } catch { return {}; } })();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(hist[d.toDateString()] || 0);
+  }
+  return days;
+}
+
+function renderXPSparkline(rankColor) {
+  const data = getXPSparkline();
+  const max  = Math.max(...data, 1);
+  const days = ['S','M','T','W','T','F','S'];
+  const today = new Date().getDay();
+  // 7 bars, each day offset from today
+  const labels = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    labels.push(days[d.getDay()]);
+  }
+  return '<div style="margin-top:10px">' +
+    '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:4px"><span>XP this week</span><span>' + data[6] + ' today</span></div>' +
+    '<div style="display:flex;align-items:flex-end;gap:3px;height:28px">' +
+      data.map((v, i) => {
+        const h   = Math.max(3, Math.round((v / max) * 28));
+        const isToday = i === 6;
+        const col = isToday ? rankColor : (v > 0 ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.08)');
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">' +
+          '<div style="width:100%;height:' + h + 'px;background:' + col + ';border-radius:2px 2px 0 0;min-height:3px"></div>' +
+          '<div style="font-size:8px;color:' + (isToday?'var(--ink)':'var(--muted)') + ';opacity:' + (isToday?'1':'.5') + '">' + labels[i] + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+  '</div>';
+}
+
 // ─── Negative items ───────────────────────────────────────────────────────
 // ─── Game card render ─────────────────────────────────────────────────────
 function renderGameCard() {
@@ -1311,6 +1401,7 @@ function renderGameCard() {
       '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Health</span><span>'+hp+'/100</span></div>'+
       '<div style="height:5px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+hp+'%;background:'+hpColor+';border-radius:4px;transition:width 1s ease"></div></div>'+
     '</div>'+
+    renderXPSparkline(rank.color)+
     (negSummary?'<div style="font-size:11px;color:#c97c3c;margin-top:8px;padding:6px 10px;background:rgba(201,124,60,.1);border-radius:8px">'+negSummary+'</div>':'');
 }
 
@@ -1471,6 +1562,44 @@ function refreshAll() {
 
 
 
+
+// ─── Joy entry count ──────────────────────────────────────────────────────────
+const JOY_COUNT_KEY = 'ritual_joy_count_v1';
+
+function getCachedJoyCount() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(JOY_COUNT_KEY));
+    if (raw && raw.date === new Date().toDateString()) return raw.count;
+  } catch {}
+  return null;
+}
+
+function setCachedJoyCount(n) {
+  try { localStorage.setItem(JOY_COUNT_KEY, JSON.stringify({ date: new Date().toDateString(), count: n })); } catch {}
+}
+
+async function loadJoyCount() {
+  if (CONFIG.SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) return;
+  const cached = getCachedJoyCount();
+  if (cached !== null) { updateJoyCard(cached); return; }
+  try {
+    const range = encodeURIComponent(CONFIG.JOY_SHEET + '!A:A');
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const data  = await (await fetch(url)).json();
+    if (data.error) return;
+    const rows  = (data.values || []).filter(r => r[0]);
+    // Skip header if present
+    const count = rows[0] && /timestamp|date/i.test(rows[0][0]) ? rows.length - 1 : rows.length;
+    setCachedJoyCount(count);
+    updateJoyCard(count);
+  } catch {}
+}
+
+function updateJoyCard(count) {
+  const sub = document.getElementById('joy-card-sub');
+  if (sub && count > 0) sub.textContent = count + ' moment' + (count === 1 ? '' : 's') + ' logged';
+}
+
 // ─── Joy Journal (positive experience tracking) ─────────────────────────────
 const INTENSITY_EMOJI = { 1:'🫧', 2:'🌿', 3:'🌸', 4:'✨', 5:'🌟' };
 const INTENSITY_LABEL = { 1:'a small flicker', 2:'a warm moment', 3:'a lovely moment', 4:'a big heart moment', 5:'unforgettable' };
@@ -1624,6 +1753,9 @@ async function submitJoy() {
       showToast('✨ Moment saved');
       addHP(2); renderGameCard();
       autoMarkJournalRitual();
+      // Update cached count
+      const _jc = getCachedJoyCount();
+      if (_jc !== null) { setCachedJoyCount(_jc + 1); updateJoyCard(_jc + 1); }
     } catch(e) {
       showToast('Failed: ' + e.message);
       btn.disabled = false; btn.textContent = '🎵 Happy Happy Joy Joy';
@@ -1945,7 +2077,7 @@ async function loadData(forceRefresh=false){
     }
     renderHome();    if(currentCategory)renderTasks();
     await loadProgressFromSheet(); // sync XP/streak from Sheet5
-    checkWelcomeBack();dailyRegen();loadNegItems();
+    checkWelcomeBack();dailyRegen();loadNegItems();loadJoyCount();
   }catch(e){
     document.getElementById('home-content').innerHTML=`<div class="error-msg">⚠️ Couldn't load<br>${e.message}<br><br>Check Sheet ID, API key,<br>and that the sheet is public.</div>`;
   }
@@ -2036,6 +2168,9 @@ function renderDemoHome() {
   // Update header
   const countEl = document.getElementById('header-done-count');
   if (countEl) countEl.textContent = 'Preview mode';
+  // Show demo joy count
+  const _djsub = document.getElementById('joy-card-sub');
+  if (_djsub) _djsub.textContent = DEMO_JOY.filter(e=>!e.isPrivate).length + ' moments logged';
 }
 
 function setupLine(key, isMissing, label) {
@@ -2066,7 +2201,7 @@ function renderHome(){
   html+='<div onclick="openJoyJournal()" style="background:linear-gradient(135deg,rgba(201,168,76,.08),rgba(201,168,76,.02));border:1.5px solid rgba(201,168,76,.25);border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px">'+
     '<span style="font-size:22px">📖</span>'+
     '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink);font-family:Playfair Display,serif">Joy journal</div>'+
-    '<div style="font-size:11px;color:var(--muted);margin-top:1px">Look back on the good moments</div></div>'+
+    '<div id="joy-card-sub" style="font-size:11px;color:var(--muted);margin-top:1px">Look back on the good moments</div></div>'+
     '<span style="opacity:.5;font-size:12px">›</span></div>';
   // Streak card — below joy journal, borderless, colour deepens with streak
   const _st = getStreakData(), _g = loadGame();
@@ -2171,7 +2306,7 @@ function renderTasks(){
     const bgSnooze=document.createElement('div');bgSnooze.className='swipe-bg-snooze';bgSnooze.innerHTML='🌙';
     const card=document.createElement('div');card.className='task-card';card.dataset.row=task.sheetRow;card.dataset.urgency=urgencyLevel(task.ratio);
     card.style.cssText='touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1';
-    card.innerHTML=`<div class="task-inner"><div class="task-name">${task.name}</div>${task.oneOff?'<div class="one-off-badge">✦ One-off</div>':''}</div><div class="task-last">${relativeTime(task.lastDone)}</div><div class="task-bar"><div class="task-fill" style="background:${color}" data-target="${width}"></div></div>`;
+    card.innerHTML=`<div class="task-inner"><div class="task-name">${task.name}</div>${task.oneOff?'<div class="one-off-badge">✦ One-off</div>':''}<button class="task-edit-btn" onclick="event.stopPropagation();openEditTask(${task.sheetRow})" title="Edit">✎</button></div><div class="task-last">${relativeTime(task.lastDone)}</div><div class="task-bar"><div class="task-fill" style="background:${color}" data-target="${width}"></div></div>`;
     wrap.appendChild(bgDone);wrap.appendChild(bgSnooze);wrap.appendChild(card);
     list.appendChild(wrap);attachSwipe(card,bgDone,bgSnooze,task.sheetRow);
   });
@@ -2345,13 +2480,49 @@ function checkUrgentClear(prevCount){const now=allTasks.filter(t=>t.ratio>=0.75&
 function checkWelcomeBack(){const lastOpen=localStorage.getItem('ritual_last_open');const today=new Date().toDateString();const ds=lastOpen?Math.floor((Date.now()-new Date(lastOpen).getTime())/86400000):0;localStorage.setItem('ritual_last_open',new Date().toISOString());if(ds>=2){const overdue=allTasks.filter(t=>t.ratio>=1).length;if(overdue>0)setTimeout(()=>showToast(`Welcome back! ${overdue} ritual${overdue!==1?'s':''} need attention`),600);}}
 
 // ─── Add task ─────────────────────────────────────────────────────────────────
+
+function openEditTask(sheetRow) {
+  const task = allTasks.find(t => t.sheetRow === sheetRow);
+  if (!task) return;
+  _editRow = sheetRow;
+
+  // Pre-fill the form
+  document.getElementById('new-name').value = task.name;
+  document.getElementById('new-min').value  = task.minDays;
+  document.getElementById('new-max').value  = task.maxDays;
+  document.getElementById('new-oneoff').checked = task.oneOff;
+  document.getElementById('new-neg').checked = false;
+  toggleNegForm(false);
+
+  // Check the right categories
+  const container = document.getElementById('new-cat-checks');
+  container.innerHTML = '';
+  categories.forEach(cat => {
+    const label = document.createElement('label');
+    label.className = 'cat-check-label';
+    const checked = task.cats.includes(cat.code) ? 'checked' : '';
+    label.innerHTML = `<input type="checkbox" value="${cat.code}" ${checked}> ${cat.emoji} ${cat.name}`;
+    container.appendChild(label);
+  });
+
+  document.getElementById('add-sheet-title').textContent = 'Edit Ritual';
+  document.getElementById('add-submit-btn').textContent  = 'Save Changes';
+  document.getElementById('add-overlay').classList.add('open');
+  document.getElementById('add-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('new-name').focus(), 400);
+}
+
 function openAddTask(preCatCode){
+  _editRow = null;
+  document.getElementById('add-sheet-title').textContent = 'Add Ritual';
+  document.getElementById('add-submit-btn').textContent  = 'Add Ritual';
   const container=document.getElementById('new-cat-checks');container.innerHTML='';
   categories.forEach(cat=>{const label=document.createElement('label');label.className='cat-check-label';const checked=preCatCode&&cat.code===preCatCode?'checked':'';label.innerHTML=`<input type="checkbox" value="${cat.code}" ${checked}> ${cat.emoji} ${cat.name}`;container.appendChild(label);});
   document.getElementById('add-overlay').classList.add('open');document.getElementById('add-sheet').classList.add('open');
   setTimeout(()=>document.getElementById('new-name').focus(),400);
 }
 function closeAddTask(){
+  _editRow = null;
   if(window._todoCloseHook){window._todoCloseHook();return;}
   document.getElementById('add-overlay').classList.remove('open');document.getElementById('add-sheet').classList.remove('open');
 }
@@ -2378,10 +2549,25 @@ async function submitNewTask(){
   if(!oneOff&&min!==null&&max!==null&&min>max){showToast('Min must be ≤ max days');return;}
   const btn=document.getElementById('add-submit-btn');btn.disabled=true;btn.textContent='Saving…';
   const doAppend=async()=>{
-    const range=encodeURIComponent(CONFIG.SHEET_NAME+'!A:F');
-    const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
-    try{await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({values:[[name,oneOff?1:min,oneOff?1:max,'',cats.join(' '),oneOff?'1':'']]})});closeAddTask();resetAddForm();btn.disabled=false;btn.textContent='Add Ritual';showToast('"'+name+'" added ✓');bustLegendCache();loadData(true);}
-    catch(e){showToast('Failed: '+e.message);btn.disabled=false;btn.textContent='Add Ritual';}
+    try{
+      if (_editRow) {
+        // Edit existing ritual — PUT to the specific row A:F
+        const range=encodeURIComponent(`${CONFIG.SHEET_NAME}!A${_editRow}:F${_editRow}`);
+        const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?valueInputOption=RAW`;
+        await fetch(url,{method:'PUT',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({values:[[name,oneOff?1:min,oneOff?1:max,'',cats.join(' '),oneOff?'1':'']]})});
+        // Update local task
+        const t=allTasks.find(t=>t.sheetRow===_editRow);
+        if(t){t.name=name;t.minDays=oneOff?1:min;t.maxDays=oneOff?1:max;t.cats=cats;t.oneOff=oneOff;t.ratio=urgencyRatio(t.minDays,t.maxDays,t.days);}
+        closeAddTask();resetAddForm();btn.disabled=false;btn.textContent='Save Changes';
+        showToast('"'+name+'" updated ✓');bustLegendCache();renderHome();if(currentCategory)renderTasks();
+      } else {
+        // Add new ritual
+        const range=encodeURIComponent(CONFIG.SHEET_NAME+'!A:F');
+        const url=`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+        await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({values:[[name,oneOff?1:min,oneOff?1:max,'',cats.join(' '),oneOff?'1':'']]})});
+        closeAddTask();resetAddForm();btn.disabled=false;btn.textContent='Add Ritual';showToast('"'+name+'" added ✓');bustLegendCache();loadData(true);
+      }
+    }catch(e){showToast('Failed: '+e.message);btn.disabled=false;btn.textContent=_editRow?'Save Changes':'Add Ritual';}
   };
   if(isTokenValid())doAppend();else{pendingWrite={customCallback:doAppend};initOAuth();}
 }
@@ -2521,5 +2707,8 @@ updateLandingGreeting();
 
 
 
+
+
+
 </script>
-                               </html>
+  </html>
