@@ -59,7 +59,7 @@
     overflow: hidden;
     animation: fadeUp .25s ease;
   }
-  /* .view.active.block removed — task view uses flex column */
+  
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -203,6 +203,7 @@
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
     padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
     display: flex; flex-direction: column; gap: 10px;
   }
@@ -442,11 +443,11 @@
 </div>
 
 <!-- ══ HOME VIEW ══ -->
-<div class="view active" id="view-home" style="display:flex;flex-direction:column">
+<div class="view active" id="view-home">
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
-      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.4.2</div>
+      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v2.5.1</div>
       <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -465,11 +466,11 @@
     </div>
   </header>
   
-  <div id="home-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 80px)"></div>
+  <div id="home-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 80px)"></div>
 </div>
 
 <!-- ══ TASK VIEW ══ -->
-<div class="view" id="view-tasks" style="display:flex;flex-direction:column">
+<div class="view" id="view-tasks">
   <header>
     <div>
       <button class="back-btn" onclick="showHome()">
@@ -545,6 +546,7 @@
     <!-- 3. Type of act / category -->
     <div class="form-group">
       <label class="form-label">Type of moment</label>
+      <!-- Public categories -->
       <select class="form-input" id="joy-category" style="appearance:auto;-webkit-appearance:menulist">
         <optgroup label="Love languages">
           <option value="Acts of Service">🤝 Acts of Service</option>
@@ -560,6 +562,18 @@
           <option value="Gratitude">🙏 Gratitude</option>
           <option value="Custom">✏️ Write my own</option>
         </optgroup>
+      </select>
+      <!-- Private categories (shown in secret mode) -->
+      <select class="form-input" id="joy-category-private" style="appearance:auto;-webkit-appearance:menulist;display:none">
+        <option value="Anxiety">😰 Anxiety</option>
+        <option value="Shame">😔 Shame</option>
+        <option value="Anger">😤 Anger</option>
+        <option value="Grief">💧 Grief</option>
+        <option value="Old pattern">🔁 Old pattern</option>
+        <option value="Fear">😨 Fear</option>
+        <option value="Uncertainty">🌫️ Uncertainty</option>
+        <option value="Self doubt">🪞 Self doubt</option>
+        <option value="Other">✏️ Other</option>
       </select>
       <input class="form-input" id="joy-category-custom" type="text" placeholder="Describe the type…" autocomplete="off" style="display:none;margin-top:8px">
     </div>
@@ -724,6 +738,10 @@
 
 
 
+
+
+
+
 // ─── Configuration ────────────────────────────────────────────────────────
 // IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
 // The ritual sheet has category codes in col E and a legend in col I
@@ -768,8 +786,6 @@ const LEGEND_TTL_MS = 24 * 60 * 60 * 1000;
 const SNOOZE_KEY    = 'ritual_snoozed_v1';
 const STREAK_KEY    = 'ritual_streak_v1';
 const GAME_KEY      = 'ritual_game_v1';
-const NEG_KEY       = 'ritual_neg_v1';
-
 const XP_RITUAL_TASK = 20;
 const XP_NEGATIVE    = -5;
 const HP_MAX         = 100;
@@ -1056,7 +1072,6 @@ function checkStreakMilestone(days) {
   }, 500);
 }
 
-function renderStreakBadge() {} // streak shown inline in renderHome
 
 
 // ─── Rhythm ───────────────────────────────────────────────────────────────
@@ -1436,8 +1451,6 @@ function toggleNegSection() {
 // ─── OAuth ────────────────────────────────────────────────────────────────
 function isTokenValid() { return accessToken && Date.now() < tokenExpiry - 30000; }
 
-function refreshOAuth() { accessToken=null; tokenExpiry=0; showToast('Reconnecting…'); initOAuth(); }
-
 function refreshAll() {
   // Combined refresh: reload data, and re-check OAuth if token is invalid
   if (!isTokenValid()) {
@@ -1478,72 +1491,38 @@ function openSecretJoy() {
 }
 
 function openAddJoy() {
-  document.getElementById('joy-description').value    = '';
-  document.getElementById('joy-location').value       = '';
-  document.getElementById('joy-who-extra').value      = '';
+  // Reset all fields
+  document.getElementById('joy-description').value = '';
+  document.getElementById('joy-location').value    = '';
+  document.getElementById('joy-who-extra').value   = '';
   document.getElementById('joy-category').selectedIndex = 0;
   document.getElementById('joy-category-custom').value = '';
   document.getElementById('joy-category-custom').style.display = 'none';
+  document.getElementById('joy-intensity').value = 3;
+  updateJoyIntensityUI();
   document.querySelectorAll('.joy-who-chip').forEach(c => c.classList.remove('selected'));
 
-  // Set up mode-specific UI
-  // Walk up to find the form-group containing the who-chips
-  const chipsEl   = document.getElementById('joy-who-chips');
-  let whoGroup = chipsEl;
-  while (whoGroup && !whoGroup.classList.contains('form-group')) whoGroup = whoGroup.parentElement;
-  const extraGroup = document.getElementById('joy-who-extra')?.closest?.('.form-group') ||
-                     document.getElementById('joy-who-extra')?.parentElement;
-  const extraInput = document.getElementById('joy-who-extra');
-  const title      = document.querySelector('#joy-sheet .sheet-title');
-  const submitBtn  = document.getElementById('joy-submit-btn');
-  const notice     = document.getElementById('joy-private-notice');
-  const catSel     = document.getElementById('joy-category');
+  // Toggle public/private mode UI
+  const isPrivate = !!_joyPrivateMode;
+  const whoGroup  = document.getElementById('joy-who-chips').closest('.form-group');
+  const extraGrp  = document.getElementById('joy-who-extra').closest('.form-group') ||
+                    document.getElementById('joy-who-extra').parentElement;
+  const catPub    = document.getElementById('joy-category');
+  const catPriv   = document.getElementById('joy-category-private');
+  const title     = document.querySelector('#joy-sheet .sheet-title');
+  const submitBtn = document.getElementById('joy-submit-btn');
+  const notice    = document.getElementById('joy-private-notice');
 
-  if (_joyPrivateMode) {
-    if (title)      title.textContent = '🔒 Working through it';
-    if (submitBtn)  submitBtn.textContent = '🔒 Save privately';
-    if (notice)     notice.style.display = 'block';
-    // Hide who section
-    if (whoGroup)   whoGroup.style.display = 'none';
-    if (extraGroup) extraGroup.style.display = 'none';
-    // Swap category options to reflection types
-    if (catSel) {
-      catSel.innerHTML =
-        '<option value="Anxiety">😰 Anxiety</option>' +
-        '<option value="Shame">😔 Shame</option>' +
-        '<option value="Anger">😤 Anger</option>' +
-        '<option value="Grief">💧 Grief</option>' +
-        '<option value="Old pattern">🔁 Old pattern</option>' +
-        '<option value="Fear">😨 Fear</option>' +
-        '<option value="Uncertainty">🌫️ Uncertainty</option>' +
-        '<option value="Self doubt">🪞 Self doubt</option>' +
-        '<option value="Other">✏️ Other</option>';
-    }
-  } else {
-    if (title)      title.textContent = '✨ Log a moment';
-    if (submitBtn)  submitBtn.textContent = '🎵 Happy Happy Joy Joy';
-    if (notice)     notice.style.display = 'none';
-    if (whoGroup)   whoGroup.style.display = '';
-    if (extraGroup) extraGroup.style.display = '';
-    // Restore original category options
-    if (catSel) {
-      catSel.innerHTML =
-        '<optgroup label="Love languages">' +
-          '<option value="Acts of Service">🤝 Acts of Service</option>' +
-          '<option value="Words of Affirmation">💬 Words of Affirmation</option>' +
-          '<option value="Quality Time">🕰️ Quality Time</option>' +
-          '<option value="Physical Touch">🫂 Physical Touch</option>' +
-          '<option value="Receiving Gifts">🎁 Receiving Gifts</option>' +
-        '</optgroup>' +
-        '<optgroup label="Other">' +
-          '<option value="Self Love">🪞 Self Love</option>' +
-          '<option value="Kindness">🌟 Kindness</option>' +
-          '<option value="Unexpected good">🎲 Unexpected good</option>' +
-          '<option value="Gratitude">🙏 Gratitude</option>' +
-          '<option value="Custom">✏️ Write my own</option>' +
-        '</optgroup>';
-    }
-  }
+  whoGroup.style.display   = isPrivate ? 'none' : '';
+  extraGrp.style.display   = isPrivate ? 'none' : '';
+  catPub.style.display     = isPrivate ? 'none' : '';
+  catPriv.style.display    = isPrivate ? '' : 'none';
+  catPriv.selectedIndex    = 0;
+  title.textContent        = isPrivate ? '🔒 Working through it' : '✨ Log a moment';
+  submitBtn.textContent    = isPrivate ? '🔒 Save privately' : '🎵 Happy Happy Joy Joy';
+  notice.style.display     = isPrivate ? 'block' : 'none';
+
+  // Wire events once
   if (!window._joyChipsWired) {
     document.querySelectorAll('.joy-who-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -1552,16 +1531,12 @@ function openAddJoy() {
       });
     });
     document.getElementById('joy-category').addEventListener('change', function() {
-      const custom = document.getElementById('joy-category-custom');
-      if (this.value === 'Custom') { custom.style.display = 'block'; custom.focus(); }
-      else custom.style.display = 'none';
+      document.getElementById('joy-category-custom').style.display = this.value === 'Custom' ? 'block' : 'none';
     });
-    const slider = document.getElementById('joy-intensity');
-    if (slider) slider.addEventListener('input', updateJoyIntensityUI);
+    document.getElementById('joy-intensity').addEventListener('input', updateJoyIntensityUI);
     window._joyChipsWired = true;
   }
-  document.getElementById('joy-intensity').value = 3;
-  updateJoyIntensityUI();
+
   document.getElementById('joy-overlay').classList.add('open');
   document.getElementById('joy-sheet').classList.add('open');
   setTimeout(() => document.getElementById('joy-description').focus(), 400);
@@ -1579,7 +1554,7 @@ function autoMarkJournalRitual() {
   journalTask.ratio = 0;
   addXP(XP_RITUAL_TASK);
   addHP(HP_RITUAL_TASK);
-  setTimeout(() => { renderGameCard(); renderStreakBadge(); }, 200);
+  setTimeout(() => { renderGameCard();  }, 200);
   patchHomeAfterDone(journalTask.sheetRow, now);
   recordStreakDay();
   if (!_demoMode && isTokenValid()) {
@@ -1619,9 +1594,11 @@ async function submitJoy() {
   const whoChip     = document.querySelector('.joy-who-chip.selected');
   const whoFrom     = whoChip ? whoChip.dataset.who : '';
   const whoExtra    = document.getElementById('joy-who-extra').value.trim();
-  const catSelect   = document.getElementById('joy-category').value;
-  const customCat   = document.getElementById('joy-category-custom').value.trim();
-  const category    = catSelect === 'Custom' ? (customCat || 'Custom') : catSelect;
+  const catEl   = _joyPrivateMode ? document.getElementById('joy-category-private')
+                                   : document.getElementById('joy-category');
+  const catVal  = catEl ? catEl.value : '';
+  const customCat = document.getElementById('joy-category-custom').value.trim();
+  const category  = catVal === 'Custom' ? (customCat || 'Custom') : catVal;
   const location    = document.getElementById('joy-location').value.trim();
   const intensity   = parseInt(document.getElementById('joy-intensity').value) || 3;
 
@@ -1966,8 +1943,7 @@ async function loadData(forceRefresh=false){
       categories=parseLegend(rows);saveLegendCache(categories);
       allTasks=parseTaskRows(rows);
     }
-    renderHome();renderStreakBadge();
-    if(currentCategory)renderTasks();
+    renderHome();    if(currentCategory)renderTasks();
     await loadProgressFromSheet(); // sync XP/streak from Sheet5
     checkWelcomeBack();dailyRegen();loadNegItems();
   }catch(e){
@@ -2032,8 +2008,7 @@ function renderDemoHome() {
 
   // Show the full interactive home
   renderHome();
-  renderStreakBadge();
-  dailyRegen();
+    dailyRegen();
   renderNegStrip();
 
   // Inject setup banner above game card
@@ -2172,8 +2147,6 @@ function renderHome(){
   el.querySelectorAll('.category-card').forEach(card=>attachCatCardEvents(card));
   const countEl=document.getElementById('header-done-count');
   if(countEl){const n=getDoneTodayCount();countEl.textContent=n>0?`${n} done today`:'Personal tracker';}
-  // Re-wire cat card events after DOM patch (new nodes lose listeners)
-  document.querySelectorAll('.category-card').forEach(c=>attachCatCardEvents(c));
 }
 
 // ─── Render tasks ─────────────────────────────────────────────────────────────
@@ -2260,46 +2233,49 @@ function attachSwipe(card,bgDone,bgSnooze,sheetRow){
     else{card.style.transform='';}
   });
 }
-function attachCatCardEvents(card){
-  let pressTimer=null, longFired=false;
 
-  const startPress=(e)=>{
-    longFired=false;
-    card.classList.add('long-press-active');
-    pressTimer=setTimeout(()=>{
-      longFired=true;
-      pressTimer=null;
-      card.classList.remove('long-press-active');
-      const topRow=card.dataset.topRow, topName=card.dataset.topName;
-      if(!topRow||!topName){ showToast('No tasks due in this category'); return; }
-      const lp=document.getElementById('lp-confirm');
-      lp.innerHTML=`Mark <strong>${topName}</strong> done?`+
-        `<button onclick="markDoneHome(${topRow},null,'${topName.replace(/'/g,"\\'")}');document.getElementById('lp-confirm').innerHTML=''" `+
-          `style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">✓ Yes</button>`+
-        `<button onclick="document.getElementById('lp-confirm').innerHTML=''" `+
-          `style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;cursor:pointer">Cancel</button>`;
-    },600);
-  };
-
-  const endPress=()=>{
-    clearTimeout(pressTimer);
-    pressTimer=null;
-    card.classList.remove('long-press-active');
-  };
-
-  // Tap to open category (only if long-press did NOT fire)
-  card.addEventListener('click', ()=>{
-    if (longFired) { longFired=false; return; }
-    showTasks(card.dataset.cat);
-  });
-
-  card.addEventListener('mousedown', startPress);
-  card.addEventListener('touchstart', startPress, {passive:true});
-  card.addEventListener('mouseup',    endPress);
-  card.addEventListener('touchend',   endPress);
-  card.addEventListener('mouseleave', endPress);
-  card.addEventListener('touchcancel',endPress);
+function _lpYes(sheetRow, btn) {
+  const lp = document.getElementById('lp-confirm');
+  const name = lp ? (lp._name || '') : '';
+  if (lp) lp.innerHTML = '';
+  markDoneHome(sheetRow, null, name);
 }
+function _lpNo() {
+  const lp = document.getElementById('lp-confirm');
+  if (lp) lp.innerHTML = '';
+}
+
+function attachCatCardEvents(card){
+  if (card.dataset.wired) return;
+  card.dataset.wired = '1';
+  let pressTimer = null, longFired = false;
+  const startPress = () => {
+    longFired = false;
+    card.classList.add('long-press-active');
+    pressTimer = setTimeout(() => {
+      longFired = true; pressTimer = null;
+      card.classList.remove('long-press-active');
+      const topRow  = card.dataset.topRow;
+      const topName = card.dataset.topName;
+      if (!topRow || !topName) { showToast('No tasks due in this category'); return; }
+      const lp = document.getElementById('lp-confirm');
+      lp._row  = +topRow;
+      lp._name = topName;
+      lp.innerHTML = 'Mark <strong>' + topName.replace(/</g,'&lt;') + '</strong> done? ' +
+        '<button onclick="_lpYes()" style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:DM Sans,sans-serif;cursor:pointer">✓ Yes</button> ' +
+        '<button onclick="_lpNo()" style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:DM Sans,sans-serif;cursor:pointer">Cancel</button>';
+    }, 600);
+  };
+  const endPress = () => { clearTimeout(pressTimer); pressTimer = null; card.classList.remove('long-press-active'); };
+  card.addEventListener('click', () => { if (longFired) { longFired = false; return; } showTasks(card.dataset.cat); });
+  card.addEventListener('touchstart', startPress, {passive:true});
+  card.addEventListener('touchend',   endPress);
+  card.addEventListener('touchcancel',endPress);
+  card.addEventListener('mousedown',  startPress);
+  card.addEventListener('mouseup',    endPress);
+  card.addEventListener('mouseleave', endPress);
+}
+
 
 
 // ─── Mark done ────────────────────────────────────────────────────────────────
@@ -2343,8 +2319,6 @@ function patchHomeAfterDone(sheetRow,timestamp){
   doneStrip.insertBefore(row,doneStrip.firstChild);
   const countEl=document.getElementById('header-done-count');
   if(countEl){const n=getDoneTodayCount();countEl.textContent=n>0?`${n} done today`:'Personal tracker';}
-  // Re-wire cat card events after DOM patch (new nodes lose listeners)
-  document.querySelectorAll('.category-card').forEach(c=>attachCatCardEvents(c));
 }
 async function writeToSheet(range,value,btn,sheetRow,timestamp,isHome){
   if (_demoMode) { applyDoneLocally(sheetRow,timestamp,btn); return; }
@@ -2543,5 +2517,9 @@ updateLandingGreeting();
 
 
 
+
+
+
+
 </script>
-  </html>
+                               </html>
