@@ -50,6 +50,7 @@
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background 1.2s ease;
   }
   #app-shell {
     width: 100%; height: 100dvh;
@@ -170,7 +171,28 @@
   .category-card:active { transform: none; }
   .category-card.has-overdue { border-color: rgba(244,63,94,.4); }
   .category-card.has-due    { border-color: rgba(249,115,22,.35); }
-  .category-card.long-press-active { transform: scale(.94); background: var(--surface2); }
+  .category-card.long-press-active {
+    transform: scale(.97);
+    box-shadow: 0 0 0 2px var(--c-fresh), 0 0 18px rgba(134,239,172,.35);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .long-press-active::after {
+    content: '';
+    position: absolute; left: 0; bottom: 0;
+    height: 3px; width: 0;
+    background: linear-gradient(90deg, var(--c-fresh), #4ade80);
+    box-shadow: 0 0 12px rgba(134,239,172,.6);
+    animation: lpFill 700ms linear forwards;
+    z-index: 5;
+  }
+  @keyframes lpFill { from { width: 0%; } to { width: 100%; } }
+  .lp-complete-flash {
+    animation: lpFlash .5s ease-out;
+  }
+  @keyframes lpFlash {
+    0%   { box-shadow: 0 0 0 2px var(--c-fresh), 0 0 30px rgba(134,239,172,.8); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
   .cat-emoji { font-size: 26px; margin-bottom: 8px; display: block; }
   .cat-name  { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--ink); margin-bottom: 4px; }
   .cat-stats { font-size: 11px; color: var(--ink-muted); font-weight: 300; }
@@ -191,7 +213,7 @@
     background: var(--c-over); color: white;
     font-size: 10px; font-weight: 700; border-radius: 10px; padding: 2px 7px;
   }
-  .cat-hint { font-size: 9px; color: var(--ink-muted); margin-top: 6px; letter-spacing: .5px; opacity: .6; }
+  .cat-hint { font-size: 10px; color: #ffffff; font-weight: 700; margin-top: 6px; letter-spacing: .5px; opacity: 1; }
 
   /* ── TASK VIEW ── */
   .task-view-header { padding: 0 20px 10px; flex-shrink: 0; }
@@ -247,6 +269,18 @@
   .task-bar   { height: 3px; background: var(--border); overflow: hidden; }
   .task-fill  { height: 100%; width: 0%; transition: width 1s cubic-bezier(.25,.8,.25,1); }
   .swipe-hint { text-align: center; font-size: 10px; color: var(--ink-muted); padding: 0 0 10px; letter-spacing: .5px; opacity: .5; }
+  .quote-of-day {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 13px; line-height: 1.5;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 14px 28px;
+    margin: 4px 0 10px;
+    opacity: .7;
+    border-top: 1px solid rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
   .one-off-badge { font-size: 10px; color: #7a4fcf; background: rgba(122,79,207,.1); border-radius: 20px; padding: 2px 8px; display: inline-block; margin-top: 4px; }
 
   .subdaily-badge {
@@ -394,6 +428,7 @@
 </style>
 </head>
 <body>
+<div id="hp-bg-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(ellipse at 50% 70%, rgba(180,30,30,.3), transparent 60%);opacity:0;transition:opacity 1.2s ease"></div>
 <canvas id="particle-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;transition:opacity .2s"></canvas>
 
 <!-- ══ LANDING SCREEN ══ -->
@@ -401,8 +436,10 @@
 <div id="landing-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100dvh;text-align:center;padding:40px 32px">
   <div class="landing-logo">💀</div>
   <div class="landing-title">Ritual</div>
-  <div style="font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px;margin-top:-6px">v3.1.1</div>
-  <div class="landing-sub" id="landing-greeting">Your personal tracker for self‑care, growth and connection. Small habits, done consistently.</div>
+  <div class="landing-sub" style="margin-bottom:6px">Personal tracker for self‑care, growth and connection.</div>
+  <div style="font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:14px">v3.3.2</div>
+  <div class="landing-sub" id="landing-greeting" style="margin-bottom:6px">Good evening — your rituals are waiting.</div>
+  <div id="landing-quote" style="font-family:'Cinzel',serif;font-weight:400;font-size:13px;line-height:1.6;letter-spacing:.5px;color:rgba(192,132,252,.75);max-width:340px;padding:16px 12px 4px;margin:6px 0 18px;border-top:1px solid rgba(192,132,252,.15)"></div>
   <button class="landing-begin-btn" onclick="beginRitual()">Begin →</button>
   <button class="landing-howto-btn" onclick="showHowTo()">How to use</button>
 </div>
@@ -486,7 +523,7 @@
   <header>
     <div>
       <div class="wordmark">Ritual<span class="wordmark-dot">.</span></div>
-      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v3.1.1</div>
+      <div class="header-sub" style="font-size:9px;letter-spacing:1.5px;color:var(--ink-muted);margin-top:0">v3.3.2</div>
       <div class="header-sub" id="header-done-count">Personal tracker</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -710,107 +747,11 @@
       <label class="form-label">Categories</label>
       <div class="cat-checks" id="new-cat-checks"></div>
     </div>
-    <div id="neg-info" style="display:none;font-size:12px;color:var(--muted);padding:8px 12px;background:rgba(201,124,60,.08);border-radius:10px;border:1px solid rgba(201,124,60,.2);margin-bottom:12px">
-      Appears on home screen. Tap to log an occurrence. Over the daily limit costs HP and XP.
-    </div>
-    <button class="submit-btn" id="add-submit-btn" onclick="submitNewTask()">Add Ritual</button>
-  </div>
-</div>
 
 <div id="lp-confirm" style="display:none"></div>
 <div id="toast" style="display:none"></div>
 
-
-
-
-
 <script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // ─── Configuration ────────────────────────────────────────────────────────
 // IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
 // The ritual sheet has category codes in col E and a legend in col I
@@ -831,6 +772,7 @@ const CONFIG = {
   JOY_SHEET:      'Sheet4',   // positive experiences: Timestamp | Category | Location | Description
   PROGRESS_SHEET:  'Sheet5',   // A:xp B:hp C:streak_cur D:streak_best E:streak_date F:last_regen G:grace H:joy_str_cur I:joy_str_best J:joy_str_date K:total_done L:week_done M:week_start N:insight_date O:mood_date P:rhythm_json
   DAILY_LOG_SHEET: 'Sheet6',   // daily log: Date | XP earned | HP snapshot | Rituals done | Joy entries
+  QUOTES_SHEET:    'Sheet7',   // custom quotes: col A — one quote per row
   DATA_START_ROW:  2,
 };
 // OAuth — one client ID covers both ritual and chores sheets
@@ -1144,6 +1086,50 @@ function allowedPerDay(task) {
   return task.maxDays < 1 ? Math.max(2, Math.round(1 / task.maxDays)) : 1;
 }
 
+
+// ─── Sub-daily AM/PM tracking ─────────────────────────────────────────────────
+function getCurrentPeriod() {
+  return new Date().getHours() < 12 ? 'am' : 'pm';
+}
+
+function getDailyCompletionsByPeriod(sheetRow) {
+  // Returns { am: count, pm: count } for today
+  try {
+    const raw = JSON.parse(localStorage.getItem(DAILY_COUNT_KEY));
+    if (raw && raw.date === new Date().toDateString()) {
+      const periods = (raw.periods || {})[sheetRow] || { am: 0, pm: 0 };
+      return periods;
+    }
+  } catch {}
+  return { am: 0, pm: 0 };
+}
+
+function recordCompletionInPeriod(sheetRow) {
+  try {
+    const today = new Date().toDateString();
+    let raw = JSON.parse(localStorage.getItem(DAILY_COUNT_KEY));
+    if (!raw || raw.date !== today) raw = { date: today, counts: {}, periods: {} };
+    if (!raw.periods) raw.periods = {};
+    if (!raw.periods[sheetRow]) raw.periods[sheetRow] = { am: 0, pm: 0 };
+    raw.periods[sheetRow][getCurrentPeriod()] += 1;
+    localStorage.setItem(DAILY_COUNT_KEY, JSON.stringify(raw));
+  } catch {}
+}
+
+function isExhaustedThisPeriod(task) {
+  // For AM/PM rituals (allowedPerDay==2): exhausted if current period count >= 1
+  // For thrice-daily etc: split day into N equal periods
+  if (task.maxDays >= 1) return isDoneToday(task.lastDone);
+  const apd = allowedPerDay(task);
+  if (apd === 2) {
+    // AM/PM split
+    const periods = getDailyCompletionsByPeriod(task.sheetRow);
+    return periods[getCurrentPeriod()] >= 1;
+  }
+  // 3+ per day: fall back to total count check
+  return isExhaustedToday(task);
+}
+
 function isExhaustedToday(task) {
   if (task.maxDays >= 1) return isDoneToday(task.lastDone);
   const counts = getDailyCounts();
@@ -1420,7 +1406,19 @@ function addXP(amount) {
     setTimeout(()=>showToast(`Rank dropped to ${r.emoji} ${r.name}`,3000),500);
   } else if (newIdx > prevIdx) {
     const r=RANKS[newIdx];
-    setTimeout(()=>{ showToast(`Rank up! ${r.emoji} ${r.name}!`,3000); burstParticles(innerWidth/2,innerHeight*.4,50); },400);
+    setTimeout(()=>{
+      showToast(`Rank up! ${r.emoji} ${r.name}!`,3000);
+      burstParticles(innerWidth/2,innerHeight*.4,50);
+      // Tier change? (every 10 ranks or so) offer reflection
+      const prevTier = RANKS[prevIdx]?.tier || 0;
+      const newTier  = r.tier || 0;
+      if (newTier > prevTier && newTier > 1) {
+        setTimeout(() => offerReflection({
+          label: 'You reached ' + (TIER_NAMES[newTier] || 'a new tier'),
+          prompt: 'Just hit ' + r.name + '. What got me here? What feels different?'
+        }), 3500);
+      }
+    },400);
   }
   return g;
 }
@@ -1429,7 +1427,8 @@ function addHP(amount) {
   const g=loadGame();
   g.hp = Math.min(HP_MAX, Math.max(0,(g.hp??HP_MAX)+amount));
   saveGame(g);
-  recordDailyHP(g.hp); // keep today's snapshot current
+  recordDailyHP(g.hp);
+  updateHPBackground(g.hp);
   return g;
 }
 
@@ -1531,10 +1530,19 @@ function dailyRegen() {
       streakData.current = 0;
       localStorage.setItem(STREAK_KEY, JSON.stringify(streakData));
     }
-    setTimeout(() => {
-      showToast(`${daysMissed} days missed — -${penalty} XP · streak reset`, 4000);
-      renderGameCard();
-    }, 800);
+    if (tryUseInsurance()) {
+      // Insurance saved the streak — restore it to lastDate of yesterday
+      const _y = new Date(); _y.setDate(_y.getDate() - 1);
+      const _st = getStreakData();
+      _st.lastDate = _y.toDateString();
+      try { localStorage.setItem(STREAK_KEY, JSON.stringify(_st)); } catch {}
+      g.streakGracePending = false;
+    } else {
+      setTimeout(() => {
+        showToast(`${daysMissed} days missed — -${penalty} XP · streak reset`, 4000);
+        renderGameCard();
+      }, 800);
+    }
   } else {
     g.streakGracePending = false;
   }
@@ -1687,6 +1695,251 @@ async function generateInsights(onDemand) {
   });
 }
 
+
+
+
+
+// ─── Quote of the day ────────────────────────────────────────────────────────
+const QUOTES = [
+  // Emotional autonomy & boundaries
+  'You are not in control of other peoples emotions.',
+  'You are responsible for what you do, not for what they feel.',
+  'Their reaction is theirs. Your response is yours.',
+  'You can love someone and still let them be uncomfortable.',
+  'Caring about someone does not mean carrying them.',
+  'You cannot save anyone who is not asking to be saved.',
+  'Their mood is not your job.',
+  'You are allowed to disappoint people in service of being honest.',
+  'Holding space is not the same as fixing.',
+  'No is a complete sentence.',
+  'You teach people how to treat you by what you tolerate.',
+  'Boundaries are how love stays sustainable.',
+
+  // Steady presence & self-trust
+  'Be the calm. Not the storm trying to fix the storm.',
+  'You do not have to set yourself on fire to keep someone warm.',
+  'Showing up is the whole practice. The rest is detail.',
+  'Trust the version of you that already knows.',
+  'Tend your own garden first.',
+  'Let people miss you. Let yourself miss them.',
+  'You can be soft and still have a spine.',
+  'Patience with yourself is the foundation of everything else.',
+
+  // Relationships & connection
+  'Love is paying attention.',
+  'A real relationship has two whole people, not two halves.',
+  'Listen to understand, not to respond.',
+  'Closeness needs space to breathe.',
+  'You do not have to earn rest by being useful.',
+  'Choose presence over performance.',
+  'The right people will not require you to shrink.',
+  'Honesty in small things is the soil of trust in big things.',
+
+  // Steady rhythm & long view
+  'Small disciplines done daily change everything.',
+  'Slow is smooth. Smooth is fast.',
+  'A river cuts through rock not by force but by persistence.',
+  'How we spend our days is how we spend our lives.',
+  'Begin again. And again. And again.',
+  'Discipline is remembering what you want.',
+  'You always have time for the things you put first.',
+  'The way out is through.',
+  'Plant seeds. Some will grow. Plant more.',
+  'Stillness is where clarity lives.',
+];
+
+
+
+// ─── Load custom quotes from Sheet7 ──────────────────────────────────────────
+let _customQuotes = null;
+
+async function loadCustomQuotes() {
+  if (CONFIG.SHEET_ID.includes('YOUR_') || CONFIG.API_KEY.includes('YOUR_')) return;
+  if (!CONFIG.QUOTES_SHEET) return;
+  try {
+    const range = encodeURIComponent(CONFIG.QUOTES_SHEET + '!A:A');
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const data  = await (await fetch(url)).json();
+    if (data.error || !data.values) return;
+    let rows = data.values.map(r => (r[0] || '').trim()).filter(q => q.length > 0);
+    // Skip header if it contains "quote" or similar
+    if (rows[0] && /^(quote|quotes|text)$/i.test(rows[0])) rows = rows.slice(1);
+    if (rows.length > 0) {
+      _customQuotes = rows;
+      // Refresh quote on home if visible
+      const qEl = document.querySelector('.quote-of-day');
+      if (qEl) qEl.textContent = getQuoteOfDay();
+      // Refresh quote on landing if still visible
+      const lqEl = document.getElementById('landing-quote');
+      if (lqEl && lqEl.textContent) lqEl.textContent = '"' + getQuoteOfDay() + '"';
+    }
+  } catch(e) { console.warn('Quote load failed:', e.message); }
+}
+
+function getQuoteOfDay() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now - start) / 86400000);
+  const pool = (_customQuotes && _customQuotes.length > 0) ? _customQuotes : QUOTES;
+  return pool[dayOfYear % pool.length];
+}
+
+// ─── Milestone reflection prompts ────────────────────────────────────────────
+let _pendingReflection = null;
+
+function offerReflection(context) {
+  _pendingReflection = context;
+  const t = document.getElementById('toast');
+  t.textContent = '✨ ' + context.label + '  ·  Tap to reflect';
+  t.style.cursor = 'pointer';
+  t.style.display = 'block';
+  t.onclick = () => { startReflection(); };
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => {
+      if (!t.classList.contains('show')) {
+        t.style.display = 'none';
+        t.style.cursor = '';
+        t.onclick = null;
+      }
+    }, 350);
+  }, 6000);
+}
+
+function startReflection() {
+  const t = document.getElementById('toast');
+  t.classList.remove('show');
+  t.style.cursor = '';
+  t.onclick = null;
+  if (!_pendingReflection) return;
+  // Open joy form in milestone-reflection mode (uses private mode + context note)
+  openSecretJoy();
+  setTimeout(() => {
+    const desc = document.getElementById('joy-description');
+    if (desc) {
+      desc.value = _pendingReflection.prompt + '\n\n';
+      desc.focus();
+      // Move cursor to end
+      desc.setSelectionRange(desc.value.length, desc.value.length);
+    }
+    // Tag this entry as a milestone — auto-pick "Other" category
+    const sel = document.getElementById('joy-category-private');
+    if (sel) {
+      const otherOpt = Array.from(sel.options).find(o => /other/i.test(o.text));
+      if (otherOpt) sel.value = otherOpt.value;
+    }
+  }, 450);
+  _pendingReflection = null;
+}
+
+// ─── Personal records ────────────────────────────────────────────────────────
+function checkRecords() {
+  const g = loadGame();
+  g.records = g.records || {};
+  let newRec = null;
+
+  // Most in single day
+  const today = new Date().toDateString();
+  const todayCount = allTasks.filter(t => {
+    if (!t.lastDone) return false;
+    return new Date(t.lastDone).toDateString() === today;
+  }).length;
+  if (todayCount > (g.records.mostInDay || 0)) {
+    g.records.mostInDay = todayCount;
+    g.records.mostInDayDate = today;
+    if (todayCount >= 5) newRec = `🏆 New record — ${todayCount} rituals in one day!`;
+  }
+
+  // Lifetime milestones
+  const total = g.totalCompleted || 0;
+  const milestones = [50, 100, 250, 500, 1000, 2500];
+  milestones.forEach(m => {
+    const key = 'first' + m;
+    if (total >= m && !g.records[key]) {
+      g.records[key] = today;
+      newRec = `🎖️ ${m.toLocaleString()} lifetime rituals completed`;
+      if (m >= 100) {
+        setTimeout(() => offerReflection({
+          label: m + ' lifetime rituals',
+          prompt: 'Just hit ' + m.toLocaleString() + ' lifetime rituals. What patterns built this?'
+        }), 4500);
+      }
+    }
+  });
+
+  // Streak record
+  const st = getStreakData();
+  if (st.current > (g.records.longestStreak || 0)) {
+    g.records.longestStreak = st.current;
+    if (st.current >= 14 && st.current % 7 === 0) {
+      newRec = `🔥 New best streak — ${st.current} days`;
+    }
+  }
+
+  // Joy streak record
+  const js_ = getJoyStreak();
+  if (js_.current > (g.records.longestJoyStreak || 0)) {
+    g.records.longestJoyStreak = js_.current;
+    if (js_.current >= 7 && js_.current % 7 === 0) {
+      newRec = `📔 New best joy streak — ${js_.current} days`;
+    }
+  }
+
+  saveGame(g);
+  if (newRec) {
+    setTimeout(() => {
+      showToast(newRec, 4500);
+      burstParticles(innerWidth/2, innerHeight*.4, 35);
+    }, 1200);
+  }
+}
+
+// ─── Day-of-week completion heatmap ───────────────────────────────────────────
+const DOW_KEY = 'ritual_dow_counts_v1';
+
+function recordDowCompletion() {
+  try {
+    const dow = new Date().getDay(); // 0=Sun..6=Sat
+    const counts = JSON.parse(localStorage.getItem(DOW_KEY)) || [0,0,0,0,0,0,0];
+    counts[dow] = (counts[dow] || 0) + 1;
+    localStorage.setItem(DOW_KEY, JSON.stringify(counts));
+  } catch {}
+}
+
+function getDowCounts() {
+  try { return JSON.parse(localStorage.getItem(DOW_KEY)) || [0,0,0,0,0,0,0]; }
+  catch { return [0,0,0,0,0,0,0]; }
+}
+
+function renderDowHeatmap() {
+  const counts = getDowCounts();
+  const max    = Math.max(...counts, 1);
+  const total  = counts.reduce((a,b)=>a+b,0);
+  if (total < 7) return ''; // not enough data yet
+  const labels = ['S','M','T','W','T','F','S'];
+  const today  = new Date().getDay();
+  const peak   = counts.indexOf(Math.max(...counts));
+  return '<div style="margin-top:8px">' +
+    '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:4px"><span>Day pattern</span><span style="opacity:.7">peak ' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][peak] + '</span></div>' +
+    '<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">' +
+      counts.map((v, i) => {
+        const intensity = v / max;
+        const isToday = i === today;
+        const size = 16 + Math.round(intensity * 8);
+        const bg = intensity > 0
+          ? `rgba(192,132,252,${0.2 + intensity * 0.7})`
+          : 'rgba(255,255,255,.06)';
+        return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">' +
+          '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + bg +
+          (isToday ? ';outline:1.5px solid var(--accent);outline-offset:2px' : '') + '"></div>' +
+          '<div style="font-size:8px;color:' + (isToday ? 'var(--ink)' : 'var(--muted)') + ';opacity:' + (isToday ? '1' : '.5') + '">' + labels[i] + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+  '</div>';
+}
+
 // ─── HP history (sparkline) ───────────────────────────────────────────────────
 const HP_HIST_KEY = 'ritual_hp_hist_v1';
 
@@ -1743,17 +1996,46 @@ function renderHPSparkline() {
   '</div>';
 }
 
+
+// ─── HP-reactive page background ──────────────────────────────────────────────
+function updateHPBackground(hp) {
+  // Interpolate from spacey purple (full) to dim red (low)
+  // 100 HP → #0d0a12 (current base)
+  // 60  HP → #110a14 (slight warming)
+  // 30  HP → #150a10 (warmer red-purple)
+  // 0   HP → #180808 (dark crimson)
+  const clamped = Math.max(0, Math.min(100, hp));
+  const t = 1 - (clamped / 100); // 0 at full, 1 at empty
+  // Base: 13, 10, 18 (purple)
+  // Low:  24,  8,  8 (red)
+  const r = Math.round(13 + (24 - 13) * t);
+  const g = Math.round(10 + ( 8 - 10) * t);
+  const b = Math.round(18 + ( 8 - 18) * t);
+  const bg = `rgb(${r},${g},${b})`;
+  // Apply with smooth transition via CSS variable
+  document.documentElement.style.setProperty('--bg', bg);
+  // Add a subtle radial gradient overlay for low HP for that "spacey" feel
+  const overlay = document.getElementById('hp-bg-overlay');
+  if (overlay) {
+    if (clamped < 60) {
+      const intensity = (60 - clamped) / 60; // 0 at 60HP, 1 at 0HP
+      overlay.style.opacity = (intensity * 0.4).toFixed(2);
+    } else {
+      overlay.style.opacity = '0';
+    }
+  }
+}
+
 // ─── Negative items ───────────────────────────────────────────────────────
 // ─── Game card render ─────────────────────────────────────────────────────
 function renderGameCard() {
   const el=document.getElementById('game-card'); if (!el) return;
   const g=loadGame(), xp=g.xp||0, hp=Math.round(g.hp??HP_MAX);
-  // HP-reactive border
-  const hpBorder = hp > 60 ? 'rgba(255,255,255,.1)'
-                 : hp > 30 ? 'rgba(201,168,76,.4)'
-                 : 'rgba(160,48,48,.6)';
-  el.style.border = '1.5px solid ' + hpBorder;
-  el.style.boxShadow = hp <= 30 ? '0 0 12px rgba(160,48,48,.2)' : '';
+  // Restore default border
+  el.style.border = '';
+  el.style.boxShadow = '';
+  // Update body background to reflect HP
+  updateHPBackground(hp);
   if (!RANKS||!RANKS.length) return;
   const rank=getRank(xp), prog=rankProgress(xp), toNext=xpToNextRank(xp);
   const negCounts=getNegCounts();
@@ -1793,8 +2075,13 @@ function renderGameCard() {
     '</div>'+
     renderXPSparkline(rank.color)+
     renderHPSparkline()+
+    renderDowHeatmap()+
     (negSummary?'<div style="font-size:11px;color:#c97c3c;margin-top:8px;padding:6px 10px;background:rgba(201,124,60,.1);border-radius:8px">'+negSummary+'</div>':'')+
-    (xp>=HP_BOOST_MIN_XP&&hp<80?'<button onclick="useHPBoost()" style="margin-top:10px;width:100%;padding:7px;background:rgba(90,138,94,.12);border:1px solid rgba(90,138,94,.3);border-radius:10px;color:#5a8a5e;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;cursor:pointer">💉 HP Boost (−'+HP_BOOST_COST+' XP → +'+HP_BOOST_GAIN+' HP)</button>':'');
+    (xp>=HP_BOOST_MIN_XP&&hp<80?'<button onclick="useHPBoost()" style="margin-top:10px;width:100%;padding:7px;background:rgba(90,138,94,.12);border:1px solid rgba(90,138,94,.3);border-radius:10px;color:#5a8a5e;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;cursor:pointer">💉 HP Boost (−'+HP_BOOST_COST+' XP → +'+HP_BOOST_GAIN+' HP)</button>':'')+
+    (xp>=INSURANCE_MIN_XP?'<div style="margin-top:8px;display:flex;align-items:center;gap:8px">'+
+      '<button onclick="buyStreakInsurance()" style="flex:1;padding:7px;background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.25);border-radius:10px;color:var(--accent);font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;cursor:pointer">🛡️ Streak Insurance (−'+INSURANCE_COST+' XP)</button>'+
+      ((g.streakInsurance||0)>0?'<div style="font-size:11px;color:var(--accent)">'+(g.streakInsurance||0)+'/'+INSURANCE_MAX+'</div>':'')+
+    '</div>':'');
 }
 
 // ─── Negative items (Sheet3) ─────────────────────────────────────────────
@@ -1974,6 +2261,40 @@ function refreshAll() {
 
 
 
+
+
+// ─── Streak insurance ────────────────────────────────────────────────────────
+const INSURANCE_COST = 100;
+const INSURANCE_MIN_XP = 500;
+const INSURANCE_MAX = 2;
+
+function buyStreakInsurance() {
+  const g = loadGame();
+  const xp = g.xp || 0;
+  const have = g.streakInsurance || 0;
+  if (xp < INSURANCE_MIN_XP) { showToast('Need ' + INSURANCE_MIN_XP + ' XP to unlock', 2500); return; }
+  if (xp < INSURANCE_COST)   { showToast('Need ' + INSURANCE_COST + ' XP to buy', 2500); return; }
+  if (have >= INSURANCE_MAX) { showToast('Already have ' + INSURANCE_MAX + ' insurance', 2500); return; }
+  g.xp = xp - INSURANCE_COST;
+  g.streakInsurance = have + 1;
+  saveGame(g);
+  showToast('🛡️ Streak insurance activated (' + g.streakInsurance + '/' + INSURANCE_MAX + ')', 3000);
+  burstParticles(innerWidth/2, innerHeight*0.4, 25);
+  renderGameCard();
+}
+
+function tryUseInsurance() {
+  // Called inside dailyRegen when a streak break would happen.
+  // Returns true if insurance was consumed (streak preserved).
+  const g = loadGame();
+  if ((g.streakInsurance || 0) > 0) {
+    g.streakInsurance -= 1;
+    saveGame(g);
+    setTimeout(() => showToast('🛡️ Streak insurance used — streak protected', 4000), 600);
+    return true;
+  }
+  return false;
+}
 
 // ─── HP Boost power-up ───────────────────────────────────────────────────────
 const HP_BOOST_COST = 50;   // XP spent
@@ -2650,6 +2971,8 @@ async function loadData(forceRefresh=false){
     await loadProgressFromSheet(); // sync XP/streak from Sheet5
     checkWelcomeBack();dailyRegen();loadNegItems();loadJoyCount();checkWeeklyMoodSummary(); generateInsights(false);
   loadDailyLog(); // async: loads Sheet6 sparkline data in background
+    loadCustomQuotes(); // async: loads Sheet7 custom quotes
+    updateHPBackground(loadGame().hp ?? HP_MAX);
   }catch(e){
     document.getElementById('home-content').innerHTML=`<div class="error-msg">⚠️ Couldn't load<br>${e.message}<br><br>Check Sheet ID, API key,<br>and that the sheet is public.</div>`;
   }
@@ -2763,7 +3086,7 @@ function renderHome(){
     const maxR=cat=>{const rs=allTasks.filter(t=>t.cats.includes(cat.code)).map(t=>t.ratio);return rs.length?Math.max(...rs):0;};
     return maxR(b)-maxR(a);
   });
-  const urgentTasks=[...allTasks].filter(t=>!isExhaustedToday(t)&&!isSnoozed(t.sheetRow)).sort((a,b)=>b.ratio-a.ratio).filter(t=>t.ratio>=0.7).slice(0,5);
+  const urgentTasks=[...allTasks].filter(t=>!isExhaustedThisPeriod(t)&&!isSnoozed(t.sheetRow)).sort((a,b)=>b.ratio-a.ratio).filter(t=>t.ratio>=0.7).slice(0,5);
   const doneToday=[...allTasks].filter(t=>isDoneToday(t.lastDone)).sort((a,b)=>new Date(b.lastDone)-new Date(a.lastDone));
   let html='';
   html+='<div id="game-card" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:12px"></div>';
@@ -2801,6 +3124,7 @@ function renderHome(){
       '<div style="flex:1;font-size:12px;color:' + _color + ';font-weight:500">' + _label + '</div>' +
       '</div>';
   }
+  html+='<div class="quote-of-day">' + getQuoteOfDay().replace(/</g,'&lt;') + '</div>';
   if(urgentTasks.length>0){html+='<div class="section-label">Needs attention</div><div class="urgent-strip" id="urgent-strip"></div>';}
   if(sortedCats.length===0){
     html+='<div class="empty-state"><span class="e-icon">📋</span>No categories yet.<br><span style="font-size:12px;opacity:.6">Add entries to column I of your ritual sheet<br>e.g. <code>self = Self Care 🪥</code></span></div>';
@@ -2864,7 +3188,7 @@ function renderTasks(){
   const catTasks=allTasks.filter(t=>t.cats.includes(currentCategory));
   const filtered=catTasks.filter(t=>{
     if(isSnoozed(t.sheetRow))return false;
-    if(isExhaustedToday(t))return false;
+    if(isExhaustedThisPeriod(t))return false;
     return t.maxDays-t.days<=filterDays||t.ratio>=1;
   }).sort((a,b)=>b.ratio-a.ratio);
   if(!filtered.length){
@@ -2881,7 +3205,16 @@ function renderTasks(){
     card.style.cssText='touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;z-index:1';
     const _apd=allowedPerDay(task);
     const _cnt=getDailyCount(task);
-    const _subBadge=_apd>1?`<div class="subdaily-badge">${_apd-_cnt} left today</div>`:'';
+    let _subBadge='';
+    if(_apd===2){
+      const _periods=getDailyCompletionsByPeriod(task.sheetRow);
+      const _curP=getCurrentPeriod();
+      const _doneNow=_periods[_curP]>=1;
+      const _label=_curP==='am'?'morning':'afternoon';
+      _subBadge=_doneNow?`<div class="subdaily-badge" style="opacity:.5">✓ ${_label} done</div>`:`<div class="subdaily-badge">due this ${_label}</div>`;
+    } else if(_apd>1){
+      _subBadge=`<div class="subdaily-badge">${_apd-_cnt} left today</div>`;
+    }
     card.innerHTML=`<div class="task-inner"><div class="task-name">${task.name}</div>${task.oneOff?'<div class="one-off-badge">✦ One-off</div>':''}${_subBadge}<button class="task-edit-btn" onclick="event.stopPropagation();openEditTask(${task.sheetRow})" title="Edit">✎</button></div><div class="task-last">${relativeTime(task.lastDone)}</div><div class="task-bar"><div class="task-fill" style="background:${color}" data-target="${width}"></div></div>`;
     wrap.appendChild(bgDone);wrap.appendChild(bgSnooze);wrap.appendChild(card);
     list.appendChild(wrap);attachSwipe(card,bgDone,bgSnooze,task.sheetRow);
@@ -2900,14 +3233,12 @@ function attachHomeSwipe(card,bgDone,bgSnooze,sheetRow){
     pressTimer = setTimeout(()=>{
       longFired=true; pressTimer=null;
       card.classList.remove('long-press-active');
-      if(navigator.vibrate) navigator.vibrate([30,50,30]);
       const name = card.querySelector('.urgent-name')?.textContent||'';
-      const lp = document.getElementById('lp-confirm');
-      lp._row=sheetRow; lp._name=name;
-      _showLP('Mark <strong>'+name.replace(/</g,'&lt);')+'</strong> done? '+
-        '<button onclick="_lpYes()" style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:DM Sans,sans-serif;cursor:pointer">✓ Yes</button> '+
-        '<button onclick="_lpNo()" style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:DM Sans,sans-serif;cursor:pointer">Cancel</button>');
-    },600);
+      if(navigator.vibrate) navigator.vibrate([20,40,60]);
+      card.classList.add('lp-complete-flash');
+      setTimeout(()=>card.classList.remove('lp-complete-flash'),500);
+      markDoneHome(sheetRow, null, name);
+    },700);
     card.classList.add('long-press-active');
   };
   const endPress = () => {
@@ -3002,31 +3333,43 @@ function attachCatCardEvents(card){
   if (card.dataset.wired) return;
   card.dataset.wired = '1';
   let pressTimer = null, longFired = false;
+
   const startPress = () => {
     longFired = false;
-    card.classList.add('long-press-active');
+    // Only animate if there's a task to complete
+    if (card.dataset.topRow && card.dataset.topName) {
+      card.classList.add('long-press-active');
+    }
     pressTimer = setTimeout(() => {
       longFired = true; pressTimer = null;
       card.classList.remove('long-press-active');
       const topRow  = card.dataset.topRow;
       const topName = card.dataset.topName;
       if (!topRow || !topName) { showToast('No tasks due in this category'); return; }
-      const lp = document.getElementById('lp-confirm');
-      lp._row  = +topRow;
-      lp._name = topName;
-      _showLP('Mark <strong>' + topName.replace(/</g,'&lt);') + '</strong> done? ' +
-        '<button onclick="_lpYes()" style="margin-left:12px;background:var(--c-fresh);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-family:DM Sans,sans-serif;cursor:pointer">✓ Yes</button> ' +
-        '<button onclick="_lpNo()" style="margin-left:6px;background:rgba(255,255,255,.1);color:var(--ink);border:none;border-radius:8px;padding:6px 14px;font-family:DM Sans,sans-serif;cursor:pointer">Cancel</button>');
-    }, 600);
+      // Direct mark done — no confirm pop-up
+      if (navigator.vibrate) navigator.vibrate([20, 40, 60]);
+      card.classList.add('lp-complete-flash');
+      setTimeout(() => card.classList.remove('lp-complete-flash'), 500);
+      markDoneHome(+topRow, null, topName);
+    }, 700);
   };
-  const endPress = () => { clearTimeout(pressTimer); pressTimer = null; card.classList.remove('long-press-active'); };
-  card.addEventListener('click', () => { if (longFired) { longFired = false; return; } showTasks(card.dataset.cat); });
-  card.addEventListener('touchstart', startPress, {passive:true});
-  card.addEventListener('touchend',   endPress);
-  card.addEventListener('touchcancel',endPress);
-  card.addEventListener('mousedown',  startPress);
-  card.addEventListener('mouseup',    endPress);
-  card.addEventListener('mouseleave', endPress);
+
+  const endPress = () => {
+    clearTimeout(pressTimer); pressTimer = null;
+    card.classList.remove('long-press-active');
+  };
+
+  card.addEventListener('click', () => {
+    if (longFired) { longFired = false; return; }
+    showTasks(card.dataset.cat);
+  });
+  card.addEventListener('touchstart',  startPress, { passive: true });
+  card.addEventListener('touchend',    endPress);
+  card.addEventListener('touchcancel', endPress);
+  card.addEventListener('touchmove',   endPress, { passive: true });
+  card.addEventListener('mousedown',   startPress);
+  card.addEventListener('mouseup',     endPress);
+  card.addEventListener('mouseleave',  endPress);
 }
 
 
@@ -3061,6 +3404,7 @@ function applyDoneLocally(sheetRow,timestamp,btn){
       // Sub-daily: increment count, recalculate exhaustion
       const n=(getDailyCounts()[sheetRow]||0)+1;
       setDailyCount(sheetRow,n);
+      recordCompletionInPeriod(sheetRow);
       const apd=allowedPerDay(task);
       const remaining=apd-n;
       task.ratio=remaining<=0?1.5:0; // exhausted or still available
@@ -3082,7 +3426,9 @@ function applyDoneLocally(sheetRow,timestamp,btn){
   if (_g.weekStart !== _weekKey) { _g.weekCompleted = 0; _g.weekStart = _weekKey; }
   _g.weekCompleted = (_g.weekCompleted || 0) + 1;
   saveGame(_g);
-  recordStreakDay();if(task)task.cats.forEach(c=>recordRhythm(c));if(btn)btn.disabled=true;
+  recordDowCompletion();
+  recordStreakDay();
+  setTimeout(checkRecords, 100);if(task)task.cats.forEach(c=>recordRhythm(c));if(btn)btn.disabled=true;
   patchHomeAfterDone(sheetRow,timestamp);checkUrgentClear(urgentBefore);
 }
 function patchHomeAfterDone(sheetRow,timestamp){
@@ -3244,7 +3590,10 @@ async function openPastOneOffs(){
 function closePastOneOffs(){document.getElementById('past-overlay').classList.remove('open');setTimeout(()=>{document.getElementById('past-overlay').style.display='none';document.getElementById('past-sheet').style.display='none';},350);document.getElementById('past-sheet').classList.remove('open');}
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
-function updateLandingGreeting(){const el=document.getElementById('landing-greeting');if(el)el.textContent=getGreeting()+' — your rituals are waiting.';}
+function updateLandingGreeting(){const el=document.getElementById('landing-greeting');if(el)el.textContent=getGreeting()+' — your rituals are waiting.';  // Set landing quote
+  const _qEl = document.getElementById('landing-quote');
+  if (_qEl) _qEl.textContent = '"' + getQuoteOfDay() + '"';
+}
 function beginRitual(){
   burstParticles(innerWidth/2,innerHeight*0.55,45);
   const ls = document.getElementById('landing-screen');
@@ -3326,90 +3675,6 @@ updateLandingGreeting();
   attachSwipeToDismiss('joy-sheet',     closeAddJoy);
   attachSwipeToDismiss('journal-sheet', closeJoyJournal);
   attachSwipeToDismiss('past-sheet',    closePastOneOffs);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ─── Configuration ────────────────────────────────────────────────────────
-// IMPORTANT: CONFIG.SHEET_ID must be your RITUAL sheet (not the chores sheet)
-// The ritual sheet has category codes in col E and a legend in col I
-// e.g.  self = Self Care 🪥
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </script>
 </body>
